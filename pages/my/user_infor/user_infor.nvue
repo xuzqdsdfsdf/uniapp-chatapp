@@ -1,0 +1,114 @@
+<template>
+	<view class="page ">
+		<!-- 头部导航 -->
+		<free-navbar :showsearch="false" title="个人信息" isshowback :isshowdefaultcolor="true">
+		</free-navbar>
+		<view class="flex flex-column">
+			<free-list-item @click.stop="updateavatar" :icon="false" text="头像" showarray>
+				<view userInteractionEnabled  class="flex align-center" slot="rightcontent">
+					<image   :src="user.avatar||'/static/images/demo/demo5.jpg'" style="width: 100rpx;height: 100rpx;z-index:9999" mode=""></image>
+				</view>
+			</free-list-item>
+			<free-list-item :icon="false"  text="昵称" showarray>
+				<text class="text-muted font-sm" slot="rightcontent">rs</text>
+			</free-list-item>
+			<free-list-item :icon="false"  text="拍一拍" showarray></free-list-item>
+			<free-list-item :icon="false"  text="微信号" showarray>
+				<text class="text-muted font-sm"  slot="rightcontent">wxid_rfd5rf47fja22</text>
+			</free-list-item>
+			<free-list-item :icon="false"  text="二维码名片" @click="tocode" showarray></free-list-item>
+			<free-list-item :icon="false"  text="更多" showarray></free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item :icon="false"  text="微信豆" showarray></free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item :icon="false"  text="我的地址" showarray></free-list-item>
+			<free-list-item :icon="false"  text="我的发票抬头" showarray></free-list-item>
+		</view>
+		<view class="" style="height: 300rpx;">
+			
+		</view>
+	</view>
+</template>
+
+<script>
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	import {mapState,mapActions} from 'vuex'
+	import $H from '@/common/free-lib/request.js'
+	export default {
+		components: {
+			freeNavbar,
+			freeListItem,
+			freeDivider
+		},
+		computed: {
+			...mapState({
+				user:state=>state.user.user
+			}) 
+		},
+		methods:{
+			...mapActions(['updateuserdetail']),
+			tocode()
+			{
+				uni.navigateTo({
+					url:'../../my/user_code/user_code?params='+encodeURIComponent(JSON.stringify({
+						id:this.user.id, //好友id
+						avatar:this.user.avatar,
+						name:this.user.username
+					}))+'&type=user'
+				})
+			},
+			updateavatar()
+			{
+				uni.showActionSheet({
+					itemList:['查看','修改'],
+					success:(res)=>{
+						if(res.tapIndex==0)
+						{
+							// 查看
+							let avatar = this.user.avatar||'/static/images/demo/demo5.jpg'
+							console.log(avatar);
+							uni.previewImage({
+								current:avatar,
+								urls:[avatar]
+							})
+						}else
+						{
+							// 修改头像
+							uni.chooseImage({
+								count:1,
+								success:(res)=>{
+									let path = res.tempFilePaths[0]
+									$H.uploadfiles(path).then(res=>{
+										let dataurl = JSON.parse(res.data)
+										uni.showLoading({
+											title:'上传中请稍候...'
+										})
+										$H.post('/user/updateuser',{
+											nickname:this.user.nickname,
+											avatar:dataurl.data
+										}).then(res=>{
+											uni.hideLoading()
+											this.updateuserdetail({k:'avatar',v:dataurl.data})
+										}).catch(err=>{
+											uni.showToast({
+												title:'修改失败',
+												icon:'none'
+											})
+											uni.hideLoading()
+										})
+									})
+								}
+							})
+						}
+					}
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style>

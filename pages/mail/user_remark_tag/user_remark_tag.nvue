@@ -1,0 +1,89 @@
+<template>
+	<view style="background-color: #EDEDED" class="flex-1">
+		<!-- 头部导航栏 -->
+		<free-navbar isshowback :showsearch="false" title="设置备注和标签">
+			<view slot="options">
+				<free-button content="保存" @click="save" :disabled="false"></free-button>
+			</view>
+		</free-navbar>
+		<view class="flex align-center p-2 flex-wrap">
+			<view class="py-1 px-2 border-success border border-success rounded-circle mr-2 mb-2" v-for="(item,index) in  tagList"  :key="index" @click="deletetag(index)">
+				<text class="text-success font">{{item}}</text>
+			</view>
+			<input confirm-type="deno" @confirm="addtag" type="text" placeholder="添加标签" class="bg-white font text-center mb-2 rounded-circle" style="width: 180rpx" v-model="tagvalue" />
+		</view>
+		<view class="">
+			<text class="text-light-muted font px-3 py-2">所有标签</text>
+			<view class="flex flex-wrap pt-3  pb-2 px-1 align-center">
+				<view @click="addtaglist(i) "  class="rounded-circle bg-white px-2 py-1 border border-light-secondary mr-1 mb-1" v-for="(i,index) in alltag" :key="index">
+					<text class="text-light-muted font">{{i}}</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		components: {
+			freeNavbar,
+			freeButton
+		},
+		data: {
+			tagList: [],
+			tagvalue : '',
+			alltag:['哈哈哈','家人','亲戚','朋友']
+		},
+		onLoad(e) {
+			let detail = JSON.parse(e.detail)
+			this.tagList = detail
+		},
+		methods:{
+			addtag()
+			{
+				if(this.tagvalue)
+				{
+					this.tagList.push(this.tagvalue)
+					this.tagvalue=''
+				}
+			},
+			addtaglist(i)
+			{
+				if(this.tagList.indexOf(i)!==-1)
+				{
+					return uni.showToast({
+						title:'标签已存在',
+						icon:'none'
+					})
+				}
+				this.tagList.push(i)
+			},
+			deletetag(index)
+			{
+				uni.showModal({
+					title:'提示',
+					content:'是否删除该标签',
+					success:(res)=>{
+						if(res.confirm)
+						{
+							this.tagList.splice(index,1)
+						}
+					}
+				})
+			},
+			save()
+			{ 
+				uni.$emit('updatetag',this.tagList)
+				uni.navigateBack({
+					delta:1
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style>

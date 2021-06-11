@@ -1,0 +1,347 @@
+<template>
+	<view>
+		<free-navbar isshowback isshowdefaultcolor :showsearch="false" title="选择">
+			<free-button @click="changemode" :disabled="selectedlength==0 && ismutiple"
+				:content="ismutiple?`发送${selectedlength>0?'('+selectedlength+')人':''}`:'多选'" slot="options">
+			</free-button>
+		</free-navbar>
+		<!-- 头部 -->
+		<div @click.self="log" class="p-2 top-nav-bgc position-fixed left-0 right-0" style="width: 750rpx;"
+			:style="'top:'+searchtop+'px'">
+			<input type="text" v-model="keyword" style="height: 80rpx" :cursor="50" class="bg-white text-center"
+				placeholder="搜索" placeholder-class="text-center" />
+		</div>
+		<view class="flex flex-column" :style="'margin-top:'+searchtop+'px'">
+			<view class="p-3 flex align-center bg-white" @click="tomailconnector">
+				<text class="font-md">更多联系人</text>
+			</view>
+			<text class="p-2 top-nav-bgc font-sm text-light-muted">最近聊天</text>
+			<view class="flex flex-column">
+				<view class="flex align-center" :userInteractionEnabled="false" v-for="(item,i) in allList" :key="i"
+					@click="sharetofriend(item,$event)">
+					<view v-if="ismutiple" slot="rightcontent"
+						class="rounded-circle ml-2  border  flex align-center justify-center"
+						style="width: 45rpx;height: 45rpx;padding: 0">
+						<view v-if="item.isselected" class="main-bg-color rounded-circle"
+							style="width: 37rpx;height: 37rpx;">
+						</view>
+					</view>
+					<free-list-item class="flex-1" :src="item.avatar" :text="item.username | formatname">
+					</free-list-item>
+				</view>
+			</view>
+			<view class="d-flex align-center justify-center p-3" v-if="!selectedlength &&  keyword.length">
+				<text class="font text-light-muted">暂无搜索结果</text>
+			</view>
+		</view>
+		<free-confirm ref="confirm" title="发送给:" :confirmH="550" :confirmW="600">
+			<view slot="content" class="">
+				<view class="flex align-center mb-2">
+					<view class="flex align-center" v-if="!tomanyList.length">
+						<image :src="toavatar||'/static/images/demo/demo6.jpg'" style="width: 80rpx;height: 80rpx;"
+							mode=""></image>
+						<text class="font-sm ml-2">{{to_name}}</text>
+					</view>
+					<view class="flex align-center" v-else>
+						<image v-for="(item,index) in tomanyList" :key='index'
+							:src="item.avatar||'/static/images/demo/demo6.jpg'" style="width: 80rpx;height: 80rpx;"
+							class="mx-1" mode=""></image>
+					</view>
+				</view>
+				<view class="m-3">
+					<text class="font-sm text-light-muted">{{getmessagedata}}</text>
+				</view>
+				<view class="p-1 m-2 border-bottom">
+					<input type="text" v-model="sendcontent" placeholder="给朋友留言" style="height: 60rpx;" class="font-sm "
+						placeholder-class=" text-light-muted font-sm " />
+				</view>
+			</view>
+		</free-confirm>
+		<!-- 分享卡片 -->
+		<!-- <free-popup ref="friendcard" MaskColor transformOrigin="center center">
+			<view class="flex flex-column bg-white position-relative rounded p-3 mt-3" style="width: 600rpx;height: 550rpx;"
+			 @click="log">
+				<text class="font-md mb-2">发送给：</text>
+				<view class="flex align-center mb-2">
+					<image src="/static/images/demo/demo6.jpg" style="width: 80rpx;height: 80rpx;" mode=""></image>
+					<text class="font-sm ml-2">皮皮</text>
+				</view>
+				<view class="m-3">
+					<text class="font-sm text-light-muted">[个人名片]成都不倒翁</text>
+				</view>
+				<view class="p-1 m-2 border-bottom">
+					<input type="text" placeholder="给朋友留言" style="height: 60rpx;" class="font-sm " placeholder-class=" text-light-muted font-sm " />
+				</view> -->
+		<!-- 底部按钮 -->
+		<!-- <view style="height: 100rpx;"></view>
+				<view style="height: 100rpx;" class="position-absolute border-top left-0 right-0 bottom-0 flex align-center justify-center">
+					<view class="flex-1 flex align-center justify-center" @click="closepop">
+						<text class="font-md ">取消</text>
+					</view>
+					<view class="flex-1 flex align-center justify-center" @click="closepop">
+						<text class="text-primary font-md ">发送</text>
+					</view>
+				</view>
+			</view>
+		</free-popup> -->
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import {
+		mapState,
+		mapActions
+	} from 'vuex'
+	import freeConfirm from '@/components/free-ui/free-confirm.vue'
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		data() {
+			return {
+				ismutiple: false, //是否多选
+				screenHeight: 0,
+				keyword: '',
+				screenWidth: 0,
+				tomanyList: [],
+				statusBarHeight: 0,
+				detail: {
+					data: '',
+					type: '',
+					id: '',
+				},
+				to_name: '',
+				toavatar: '',
+				sendcontent: ''
+			}
+		},
+		components: {
+			freeNavbar,
+			freeButton,
+			freeListItem,
+			freePopup,
+			freeConfirm
+		},
+		mixins: [auth],
+		filters: {
+			formatname(item) {
+				return item.length > 10 ? item.substring(0, 9) + '...' : item
+			}
+		},
+		computed: {
+			getmessagedata() {
+				let data = ''
+				switch (this.detail.type) {
+					case 'image':
+						data = '[图片]'
+						break;
+					case 'audio':
+						data = '[音频]'
+						break;
+					case 'video':
+						data = '[视频]'
+						break;
+					case 'emoticon':
+						data = '[表情]'
+						break;
+					case 'card':
+						data = '[名片]'
+						break;
+					case 'text':
+						data = this.detail.data
+				}
+				return data
+			},
+			...mapState({
+				list: state => state.user.chatList,
+				chat: state => state.user.chat
+			}),
+			peoplenameList() {
+				return this.tomanyList.map(v => v.name).join(',')
+			},
+			popupbottom() {
+				return ((this.screenHeight - uni.upx2px(550)) / 2)
+			},
+			popupleft() {
+				return ((this.screenWidth - uni.upx2px(600)) / 2)
+			},
+			searchtop() {
+				return this.statusBarHeight + uni.upx2px(90)
+			},
+			selectedlist() {
+				return this.list.filter(v => v.isselected)
+			},
+			selectedlength() {
+				return this.selectedlist.length;
+			},
+			searchList() {
+				if (!this.keyword.length) {
+					return []
+				}
+				let filterlist = this.list.filter(v => {
+					let {
+						username
+					} = v;
+					return username.indexOf(this.keyword) !== -1
+				})
+				return filterlist
+			},
+			allList() {
+				return this.keyword.length > 0 ? this.searchList : this.list
+			}
+		},
+		onLoad(e) {
+			this.initRecommandChatList()
+			if (!e.params) {
+				return this.backToast()
+			}
+			let detail = e.params
+			detail = JSON.parse(decodeURIComponent(detail))
+			this.detail = detail
+		},
+		mounted() {
+			let res = uni.getSystemInfoSync();
+			this.screenHeight = res.screenHeight;
+			this.screenWidth = res.screenWidth;
+			this.statusBarHeight = res.statusBarHeight
+			uni.$on('handleselected', this.handleselected)
+		},
+		destroyed() {
+			uni.$off('handleselected',this.handleselected)
+		},
+		methods: {
+			handleselected(list) {
+				this.tomanyList = list
+				this.$refs['confirm'].open((close) => {
+					this.tomanyList.forEach(v => {
+						this.sendcard({
+							chat_type: 'user',
+							username: v.name,
+							id: v.user_id
+						}).then(res => {
+							uni.showToast({
+								title: '发送成功',
+								icon: 'none'
+							})
+							close();
+						}).catch(err => {
+							close();
+						})
+					})
+					this.tomanyList = []
+				});
+			},
+			...mapActions(['initRecommandChatList']),
+			sharetofriend(i, event) {
+				if (this.ismutiple) {
+					// 选中  
+					if (!i.isselected && this.selectedlength === 9) {
+						return uni.showToast({
+							title: '最多可选择9个联系人',
+							icon: 'none'
+						})
+					}
+					i.isselected = !i.isselected
+					if (i.isselected) {
+						this.tomanyList.push(i)
+					} else {
+						let index = this.tomanyList.findIndex(v => v.id == i.id && v.chat_type == i.chat_type)
+						if (index != -1) this.tomanyList.splice(index, 1)
+					}
+
+				} else {
+					this.to_name = i.username
+					this.to_avatar = i.avatar
+					console.log(i);
+					this.$refs['confirm'].open((close) => {
+						console.log(i);
+						this.sendcard(i).then(res => {
+							uni.showToast({
+								title: '发送成功',
+								icon: 'none'
+							})
+							close();
+						}).catch(err => {
+							close();
+						})
+					});
+				}
+			},
+			// 发送卡片
+			async sendcard(item) {
+				let messagedata = this.chat.formatMessagedata({
+					type: this.detail.type,
+					data: this.detail.data,
+					options: this.detail.options,
+					chat_type: item.chat_type,
+					to_name: item.username,
+					to_id: item.id
+				})
+				uni.$emit('handlemessage', messagedata)
+				this.chat.send(messagedata)
+			},
+			// 关闭弹窗
+			// closepop() {
+			// 	this.$refs['confirm'].hide();
+			// },
+			log(e) {},
+			choose(item) {
+				if (this.ismutiple) {
+					// 选中
+					if (!item.isselected) {
+						if (this.selectedlength > 9) {
+							return uni.showToast({
+								title: '最多可选择9个联系人',
+								icon: 'none'
+							})
+						}
+					}
+					item.isselected = !item.isselected
+				}
+			},
+			changemode() {
+				this.ismutiple = !this.ismutiple;
+				if (this.ismutiple) {
+					this.list.forEach(v => v.isselected = false)
+					this.tomanyList = []
+				}
+				if (this.tomanyList.length) {
+					this.$refs['confirm'].open((close) => {
+						this.tomanyList.forEach(v => {
+							this.sendcard(v).then(res => {
+								uni.showToast({
+									title: '发送成功',
+									icon: 'none'
+								})
+								close();
+							}).catch(err => {
+								close();
+							})
+						})
+						// this.sendcard(i).then(res=>{
+						// 	uni.showToast({
+						// 		title:'发送成功',
+						// 		icon:'none'
+						// 	})
+						// 	close();
+						// }).catch(err=>{
+						// 	close();
+						// })
+					});
+				}
+			},
+			tomailconnector() {
+				uni.navigateTo({
+					url: '../mail/mail_connector?type=message'
+				})
+			},
+
+		}
+	}
+</script>
+
+<style>
+
+</style>

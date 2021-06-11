@@ -1,0 +1,70 @@
+<template>
+	<view class="page">
+		<free-navbar title="设置" isshowback isshowdefaultcolor :showsearch="false"></free-navbar>
+		<view class="">
+			<free-list-item text="账号与安全" :icon="false" showarray></free-list-item>
+			<free-list-item text="青少年模式" :icon="false" showarray>
+				<text class="font-md mr-1 text-light-muted" slot="rightcontent">未开启</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="新消息提醒" :icon="false" showarray></free-list-item>
+			<free-list-item text="勿扰模式" :icon="false" showarray></free-list-item>
+			<free-list-item text="聊天" :icon="false" showarray></free-list-item>
+			<free-list-item text="隐私" :icon="false" showarray></free-list-item>
+			<free-list-item text="通用" :icon="false" showarray></free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="关于" :icon="false" showarray></free-list-item>
+			<free-list-item text="反馈" :icon="false" showarray></free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<view class="flex align-center justify-center py-4 bg-white">
+				<text class="font-md" >切换帐号</text>
+			</view>
+			<free-divider :dividerheight="20"></free-divider>
+			<view class="flex align-center justify-center py-4 bg-white" @click="logout">
+				<text class="font-md" >退出</text>
+			</view>
+			<view class="" style="height: 100rpx;">
+				
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import $H from '@/common/free-lib/request.js'
+	import {mapActions} from 'vuex'
+	export default {
+		data(){
+			return {
+				
+			}
+		},
+		components: {
+			freeNavbar, 
+			freeListItem,
+			freeDivider
+		}, 
+		methods: {
+			...mapActions(['userlogout']),
+			logout() {
+				$H.get('/user/logout').then(res=>{
+					uni.showToast({
+						title:'退出成功', 
+						icon:'none'
+					})
+					this.userlogout()
+					// uni.navigateTo({
+					// 	url:'../../loginandresign/login'
+					// })
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

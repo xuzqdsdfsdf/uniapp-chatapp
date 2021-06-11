@@ -1,0 +1,1 @@
+<view data-event-opts="{{[['tap',[['btnclick',['$event']]]]]}}" class="{{[' mr-2 px-2 py-2   rounded',disabled?'bg-light border':'bg-success']}}" bindtap="__e"><block wx:if="{{$slots.default}}"><slot></slot></block><block wx:else><text class="{{['text-white font',disabled?'text-light-muted':'text-white']}}">{{content}}</text></block></view>

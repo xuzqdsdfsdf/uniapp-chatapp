@@ -1,0 +1,95 @@
+<template>
+	<view class="page flex-1">
+		<free-navbar isshowback  :showsearch="false" title="举报">
+			<free-button @click="report" content="确定"  slot="options"/>
+		</free-navbar>
+		<view class="">
+			<picker mode="selector" :range="range" @change="change">
+				<free-list-item :text="cate?cate:'请选择分类'" :icon="false" showarray></free-list-item>
+			</picker>
+			<textarea v-model="reportcontent"  placeholder="请填写举报内容" class="bg-white p-2" placeholder-class="" />
+		</view>
+	</view>
+</template>
+
+<script>
+	import $H from '@/common/free-lib/request.js'
+	import auth from '@/common/mixins/auth.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	export default {
+		mixins:[auth],
+		components: {
+			freeNavbar,
+			freeButton,
+			freeListItem
+		},
+		data() {
+			return {
+				range:['发布不当内容对我骚扰','存在欺诈骗钱行为','此帐号可能被盗用了','存在侵权行为','发布伪冒信息','冒充他人'],
+				cate:'',
+				reportcontent:'',
+				rules:[{
+					value:'reportcontent',
+					name:'举报内容'
+				},
+				{
+					value:'cate',
+					name:'举报分类'
+				}],
+				user_id:0,
+				reported_type:'user'
+			}
+		},
+		onLoad(e) {
+			// 此处为uni页面之间相互传值监听updatetag事件
+			// 获取参数
+			if (!e.user_id || !e.reported_type) {
+				return this.backToast()
+			}
+			this.user_id = e.user_id
+			this.reported_type = e.reported_type
+		},
+		methods: {
+			change(e)
+			{
+				let value = this.range[e.detail.value];
+				this.cate = value
+				
+			},
+			report()
+			{
+				// for(let i=0;i<this.rules.length;i++)
+				// {
+				// 	let item = this.rules[i]
+				// 	if(!this[item.value].length)
+				// 	{
+				// 		return uni.showToast({
+				// 			title:`${item.name}不能为空`,
+				// 			icon:'none'
+				// 		})
+				// 	}
+				// }
+				$H.post('/report/reportuser',{
+					reported_id:this.user_id,
+					reported_type:this.reported_type,
+					content:this.reportcontent,
+					category:this.cate
+				}).then(res=>{
+					uni.showToast({
+						title:'举报成功',
+						icon:'none'
+					})
+					uni.navigateBack({
+						delta:1
+					})
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

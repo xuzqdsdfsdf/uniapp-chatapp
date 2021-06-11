@@ -1,0 +1,104 @@
+<template>
+	<view style="background-color: #EDEDED" class="flex-1">
+		<!-- 头部导航栏 -->
+		<free-navbar isshowback :showsearch="false" title="设置备注和标签">
+			<view slot="options">
+				<free-button content="完成" @click="submit" :disabled="false"></free-button>
+			</view>
+		</free-navbar>
+		<view class="">
+			<text class="text-light-muted font px-3 py-2">备注名</text>
+			<input v-model="nickname" type="text" style="height: 100rpx;" class="font-md bg-white px-3 border-bottom"
+				placeholder="请填写备注名" />
+		</view>
+		<view class="">
+			<text class="text-light-muted font px-3 py-2">标签</text>
+			<view class="flex flex-wrap pt-3 bg-white pb-2 px-1 align-center">
+				<view @click="totagdetail" class="rounded-circle px-2 py-1 border border-success mr-1 mb-1"
+					v-for="(i,index) in tagList" :key="index">
+					<text class="text-success font">{{i}}</text>
+				</view>
+				<view @click="totagdetail" v-if="tagList.length===0"
+					class="rounded-circle px-2 py-1 border border-success mr-1 mb-1">
+					<text class="text-success font">快去设置把</text>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import {mapState} from 'vuex'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import $H from '@/common/free-lib/request.js'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import auth from '@/common/mixins/auth.js'
+	export default {
+		data: {
+			tagList: [],
+			nickname: '',
+			user_id: 0,
+		},
+		mixins: [auth],
+		components: {
+			freeNavbar,
+			freeButton
+		},
+		computed:{
+			...mapState({
+				chat:state=>state.user.chat
+			})
+		},
+		onLoad(e) {
+			// 此处为uni页面之间相互传值监听updatetag事件
+			uni.$on('updatetag', (res) => {
+				this.tagList = res
+			})
+			// 获取参数
+			if (!e.user_id || !e.params) {
+				return this.backToast()
+			}
+			let detail = JSON.parse(e.params)
+			this.user_id = e.user_id
+			this.tagList = detail.tags?detail.tags.split(','):[];
+			this.nickname = detail.nickname;
+		},
+		beforeDestroy() {
+			uni.$off('updatetag')
+		},
+		methods: {
+			totagdetail() {
+				uni.navigateTo({
+					url: '../user_remark_tag/user_remark_tag?detail=' + JSON.stringify(this.tagList)
+				})
+			},
+			finish() {
+				uni.$emit('finish', {
+					tagList: this.tagList,
+					nickname: this.nickname.length ? this.nickname : '昵称'
+				})
+				uni.navigateBack({
+					delta: 1
+				})
+			},
+			submit() { 
+				$H.post('/friend/setremarktag/' + this.user_id, {
+					nickname: this.nickname,
+					tags: this.tagList.length == 0 ? '' : this.tagList.join(',')
+				}).then(res => {
+					this.chat.updateChatListitem(this.user_id,this.nickname,'user')
+					uni.showToast({
+						title: '设置成功'
+					})
+					uni.navigateBack({
+						delta:1
+					})
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

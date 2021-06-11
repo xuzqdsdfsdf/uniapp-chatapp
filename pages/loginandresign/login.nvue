@@ -1,0 +1,100 @@
+<template>
+	<view class=" flex-1">
+		<view v-if="isshow" class="bg-light flex-1 flex align-center justify-center" >
+			<text class="text-muted font-md">请稍候...</text>
+		</view>
+		<view  v-else class="flex-1 bg-white" >
+			<view class="m-5">
+				<view class="p-5 m-5 flex align-center justify-center">
+					<text style="font-size: 70rpx;">Go-Chat</text>
+				</view>
+			</view>
+			<view class="p-4">
+				<input v-model="form.username" class="border p-2 bg-light" style="height: 100rpx;" placeholder="请输入用户名" type="text"  />
+				<input v-model="form.password" class="border p-2 mt-2 bg-light" style="height: 100rpx;" placeholder="请输入密码" type="password"  />
+				<input v-if="type==='resign'" v-model="form.repassword" class="border p-2 mt-2 bg-light" style="height: 100rpx;" placeholder="确认密码" type="password"  />
+				<view @click="login" hover-class="bg-hover-light" class="bg-success my-3 rounded flex align-center  justify-center" style="height: 100rpx;">
+					<text class="text-white  font-lg">{{type==='login'?'登录':'注册'}}</text>
+				</view>
+				<block > 
+					<view class="flex align-center justify-center">
+						<text class="font text-light-muted" @click="changetype">{{type==='login'?'马上注册':'马上登录'}}</text>
+						<text class=" text-light-muted px-2">|</text>
+						<text class="font text-light-muted">忘记密码</text>
+					</view>
+				</block>
+			</view>
+			
+		</view>
+	</view>
+</template> 
+
+<script>
+	import {mapActions} from 'vuex'
+	import $H from '@/common/free-lib/request.js'
+	export default {
+		data()
+		{
+			return {
+				type:'login',
+				form:{
+					username:'',
+					password:'',
+					repassword:''
+				},
+				isshow:true 
+			}
+		},
+		mounted() {
+			let user = uni.getStorageSync('user')
+			if(user)
+			{
+				return uni.switchTab({
+					url:'../tabbars/index/index'
+				})
+			}
+			this.isshow=false; 
+		},
+		methods: {
+			...mapActions(['userlogin']),
+			login() {
+				$H.post(`/user/${this.type}`,this.form,{token:false}).then(res=>{
+					// 写在action中的方法都是异步的
+					uni.showToast({
+						icon:'none',
+						title:`${this.type=='login'?'登录':'注册'}成功`,
+					})
+					if(this.type==='login')
+					{
+						this.userlogin(res);
+						uni.switchTab({
+							url:'../tabbars/index/index'
+						})
+					} 
+					this.form={
+						username:'',
+						password:'',
+						repassword:''
+					}
+					this.type='login'
+				}).catch(err=>{
+					console.log(err);
+				})
+			},
+			changetype()
+			{
+				this.type=this.type==='login'?'resign':'login'
+				console.log(this.type);
+				this.form={
+					username:'',
+					password:'',
+					repassword:''
+				}
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

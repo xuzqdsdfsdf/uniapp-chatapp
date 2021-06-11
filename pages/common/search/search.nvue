@@ -1,0 +1,123 @@
+<template>
+	<view class="page flex-1">
+		<free-navbar isshowdefaultcolor  :showsearch="false">
+			<view class="flex align-center  " style="height:65rpx ;" slot="centerarea">
+				<view  class="ml-2  rounded bg-white  flex align-center" style="">
+					<text class="iconfont p-2 font-md text-muted">&#xe67c;</text>
+					<input type="text" class="mr-3" style="width: 480rpx;height:65rpx ;" @confirm="search" v-model="searchcontent" placeholder="搜索" /> 
+					<view :class="searchcontent.length?'muted':'bg-white'" @click="clear" class="flex align-center mr-1 justify-center  rounded-circle " style="width: 45rpx;height: 45rpx;">
+						<text class="iconfont font-sm text-muted font text-white">&#xe601;</text>
+					</view>
+				</view>
+				<view class="flex align-center justify-center" style="width: 80rpx;" slot="options" @click="back">
+					<text class="font cancel" >取消</text>
+				</view>
+			</view>
+		</free-navbar>
+		<view class="p-5" v-if="!list.length">
+			<view class="px-5 py-3 flex align-center justify-center">
+				<text class="font-sm text-muted">搜索指定内容</text>
+			</view>
+			<view class="flex flex-wrap">
+				<view class="flex align-center border-left border-right justify-center px-2 my-4" 
+					  style="width: 216.6rpx;" 
+					  v-for="i in typelist" 
+					  :key="i">
+					<text class="keyword font-md">{{i.name}}</text>
+				</view>
+			</view>
+		</view>
+		<view>
+			<free-list-item @click="todetail(item.id)" v-for="(item,index) in list" :key="index" icon :src="item.avatar?item.avatar:'/static/images/userpic.png'" :text="item.nickname?item.nickname:item.username"></free-list-item>
+		</view>
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import $H from '@/common/free-lib/request.js'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	export default {
+		mixins:[auth],
+		data(){
+			return {
+				searchcontent:'',
+				typelist:[
+					{
+						name:'历史记录',
+						key:'history'
+					},
+					{
+						name:'用户',
+						key:'user'
+					},
+					{
+						name:'群聊',
+						key:'group'
+					}
+				],
+				searchtype:'',
+				list:[]
+			}
+		},
+		onLoad(e) {
+			
+		},
+		computed: {
+			
+		},
+		components:{
+			freeNavbar,
+			freeListItem
+		},
+		methods: {
+			clear() {
+				if(!this.searchcontent)return;
+				this.searchcontent=''
+			},
+			back(){
+				uni.navigateBack({
+					delta:1
+				})
+			},
+			search(){
+				this.list=[]
+				$H.post('/search/searchuser',{keyword:this.searchcontent}).then(res=>{
+					if(res===400)
+					{
+						return uni.showToast({
+							icon:'none',
+							title:'未能找到用户'
+						})
+					}
+					this.list = [];
+					if(res)
+					{
+						this.list.push(res)
+					}
+				}).catch(err=>{
+					console.log(err);
+				})
+			},
+			todetail(id)
+			{
+				uni.navigateTo({
+					url:'../../mail/user_base/user_base?user_id='+id
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+.cancel{
+	color: #415883;
+}
+.muted{
+	background-color: #666666;
+}
+.keyword{
+	color: #46587C;
+}
+</style>

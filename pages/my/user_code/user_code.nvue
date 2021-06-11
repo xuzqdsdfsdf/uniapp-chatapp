@@ -1,0 +1,67 @@
+<template>
+	<view class="page flex-1 ">
+		<free-navbar :showsearch="false" title="二维码名片" isshowback :isshowdefaultcolor="true">
+			<text class="iconfont p-2 text-dark font-md" slot="options">&#xe65d;</text>
+		</free-navbar>
+		<view class="mt-5 mx-5 flex flex-column bg-white rounded" style="width:660rpx ;">
+			<view class="flex p-3 align-start" >
+				<image :src="detail.avatar||'/static/images/userpic.png'" style="width: 120rpx;height: 120rpx;" mode=""></image>
+				<view class="px-3 flex flex-column justify-center" >
+					<view class="flex align-center mb-1" >
+						<text>{{detail.name}}</text>
+						<text class="text-primary ml-1" v-if="type == 'user'">♂</text>
+					</view>
+					<text  class="text-muted font-md mt-1"  v-if="type == 'user'">中国大陆</text>
+				</view>
+			</view>
+			<view class="m-5 border">
+				<image :src="src" style="width: 520rpx;height: 520rpx;" mode=""></image>
+			</view>
+			<view class="flex align-center justify-center py-3">
+				<text class="text-muted font-sm">扫一扫上面的二维码{{type=='user'?'加我好友':'加入群聊'}}</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import {baseurl} from '@/common/free-lib/newconfig.js'
+	import {mapState} from 'vuex'
+	export default {
+		components: {
+			freeNavbar
+		},
+		data() {
+			return {
+				src: '',
+				detail:{
+					id:0,
+					name:'',
+					avatar:''
+				}
+			}
+		},
+		mixins:[auth],
+		onLoad(e) {
+			if (!e.params) {
+				return this.backToast()
+			}
+			let detail = e.params
+			detail = JSON.parse(decodeURIComponent(detail))
+			this.src = `${baseurl}/${e.type}/qr/${detail.id}?token=${this.user.token}`
+			this.detail = detail
+			this.type = e.type
+		},
+		computed: {
+			...mapState({
+				user:state=>state.user.user
+			})
+		},
+	}
+</script>
+
+<style>
+
+</style>

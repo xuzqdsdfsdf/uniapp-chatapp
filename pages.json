@@ -1,0 +1,215 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path":"pages/loginandresign/login"
+		},
+		{
+			"path": "pages/tabbars/index/index",
+			"style": {
+				"navigationBarTitleText": "首页"
+			}
+		},
+		{
+			"path": "pages/tabbars/mail/mail",
+			"style": {
+				"navigationBarTitleText": "通讯录"
+			}
+		},
+		{
+			"path": "pages/tabbars/find/find",
+			"style": {
+				"navigationBarTitleText": "发现"
+			}
+		},
+		{
+			"path": "pages/tabbars/my/my",
+			"style": {
+				"navigationBarTitleText": "我的"
+			}
+		},
+		{
+			"path": "pages/msg/msgdetail",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh":true
+			}
+		},
+		{
+			"path": "pages/msg/video/videodetail",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		}, {
+			"path": "pages/msg/chat/chat_set",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path":"pages/mail/user_base/user_base",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/user_remark/user_remark",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/user_remark_tag/user_remark_tag",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/user_moment_set/user_moment_set",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/user_recommand/user_recommand",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/mail/mail_connector",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/user_report/user_report",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/find/friend_moment/friend_moment",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/my/user_infor/user_infor",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/my/user_code/user_code",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/my/user_collection/user_collection",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/common/search/search",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/find/send_friend_moment/send_friend_moment",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/my/user_set/user_set",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/friend_add/friend_add",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/mail/friend_handle/friend_handle",
+			"style":{
+				"navigationBarTitleText":"",
+				"enablePullDownRefresh":true
+			}
+		},
+		{
+			"path":"pages/mail/chat_group_list/chat_group_list",
+			"style":{
+				"navigationBarTitleText":"",
+				"enablePullDownRefresh":true
+			}
+		},
+		{
+			"path":"pages/msg/group/group_remark",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/find/moment_location/moment_location",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/find/moment_see/moment_see",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		},
+		{
+			"path":"pages/msg/group/group_kickout",
+			"style":{
+				"navigationBarTitleText":""
+			}
+		}
+
+	],
+	"globalStyle": {
+		"backgroundColor": "#FFFFFF",
+		"navigationBarBackgroundColor": "#EDEDED",
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "仿微信",
+		"app-plus": {
+			"titleNView": false,
+			"scrollIndicator": "none"
+		}
+	},
+	"tabBar": {
+		"list": [{
+				"iconPath": "static/tabbar/index.png",
+				"text": "首页",
+				"selectedIconPath": "static/tabbar/index-select.png",
+				"pagePath": "pages/tabbars/index/index"
+			},
+			{
+				"iconPath": "static/tabbar/mail.png",
+				"text": "通讯录",
+				"selectedIconPath": "static/tabbar/mail-select.png",
+				"pagePath": "pages/tabbars/mail/mail"
+			},
+			{
+				"iconPath": "static/tabbar/find.png",
+				"text": "发现",
+				"selectedIconPath": "static/tabbar/find-select.png",
+				"pagePath": "pages/tabbars/find/find"
+			},
+			{
+				"iconPath": "static/tabbar/my.png",
+				"text": "我的",
+				"selectedIconPath": "static/tabbar/my-select.png",
+				"pagePath": "pages/tabbars/my/my"
+			}
+		]
+	}
+}

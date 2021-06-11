@@ -1,0 +1,13 @@
+
+.free-animated {
+	-webkit-transform: scale(0, 0);
+	        transform: scale(0, 0);
+	opacity: 0;
+}
+._body {
+	z-index: 2021;
+	background-color: #fff;
+	-webkit-border-radius: 20rpx 20rpx 0 0;
+	        border-radius: 20rpx 20rpx 0 0;
+}
+

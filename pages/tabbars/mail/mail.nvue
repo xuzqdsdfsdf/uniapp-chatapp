@@ -1,0 +1,150 @@
+<template>
+	<div>
+		<!-- 头部导航栏 -->
+		<free-navbar :networkerr="!chat.isonline" transformOrigin="right top" isshowdefaultcolor title="通讯录"></free-navbar>
+		<view class="position-relative">
+			<scroll-view scroll-with-animation scroll-y :scroll-into-view="ScrollInto"  :style="'height:'+scrollheight+'px'" >
+			<view class="flex flex-column">
+				<free-list-item :imgsize="70" @click="navto(item.tag)" :text="item.text" v-for="(item,index) in menulist" :src="item.src" :key="index">
+					<view  v-if="item.text=='新的朋友' && apply.count>0" slot="rightcontent" class="rounded-circle flex align-center justify-center mr-5 bg-danger " style="width: 40rpx;height: 40rpx;">
+						<text  class="text-white font-md">{{apply.count}}</text>
+					</view>  
+				</free-list-item>
+			</view>
+				<view  v-for="(item,index) in maillist.list" :key="index" :id="'item'+index" >
+					<free-divider>
+						<view slot="divider" class="flex align-center px-3" >
+							<text class="font-sm" >{{item.title}}</text>
+						</view>
+					</free-divider>
+					<free-list-item circle @click="navtouser(iitem.user_id)" v-for="(iitem,iindex) in item.list" :key="iindex" :src="iitem.avatar?iitem.avatar:'/static/images/mail/friend.png'" :text="iitem.name"></free-list-item>
+				</view>
+			</scroll-view>
+			<!-- 侧边栏 -->
+			<view class="position-fixed   right-0 bottom-0 flex mr-1 flex-column" style="width: 50rpx;" :style="'top:'+top+'px'" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
+				<view class="flex-1   flex  align-center justify-center" v-for="(item,index) in maillist.indexlist" :key="index">
+					<text class="font-sm text-light-muted">{{item}}</text>
+				</view>
+			</view>
+		</view>
+		<view v-if="currentLetter" class="position-fixed  left-0 right-0 bottom-0 top-0 flex align-center justify-center">
+			<view class="bg-light rounded-circle flex align-center justify-center" style="width: 100rpx;height: 100rpx;">
+				<text class="font-lg">{{currentLetter}}</text>
+			</view>
+		</view>
+	</div>
+</template>
+
+<script> 	
+	import {mapState,mapActions} from 'vuex'
+	import auth from '@/common/mixins/auth.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import mixins from '@/common/mixins/mixins.js'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	export default {
+		components: {
+			freePopup,
+			freeNavbar,
+			freeListItem,
+			freeDivider
+		},
+		mixins:[auth,mixins],
+		data() {
+			return {
+				menulist: [{
+						text:'新的朋友',
+						src: '/static/images/mail/friend.png',
+						tag:'friend_handle'
+					},
+					{
+						text:'群聊',
+						src: '/static/images/mail/group.png',
+						tag:'chat_group_list'
+					},
+					{
+						text: '标签',
+						src: '/static/images/mail/tag.png'
+					},
+					{
+						text: '公众号', 
+						src: '/static/images/mail/tag.png'
+					}
+				],
+				top:0,
+				ScrollInto:'',
+				windowHeight:0,
+				scrollheight:0,
+				currentLetter:''
+			}
+		},
+		onLoad() {
+			let res=uni.getSystemInfoSync(); 
+			this.top = res.statusBarHeight + uni.upx2px(90)
+			this.windowHeight= res.windowHeight;
+			this.scrollheight= this.windowHeight-this.top
+		},
+		onShow() {
+			this.getMailList()	
+		},
+		computed: {
+			...mapState({
+				maillist:(state)=>state.user.maillist,
+				apply:(state)=>state.user.apply
+			}),
+			ItemHeight() {
+				return (this.windowHeight-this.top)/this.maillist.list.length
+			},
+		},
+		methods:{
+			...mapActions(['getMailList']),
+			touchstart(e)
+			{
+				this.scrollmove(e)
+			},
+			touchmove(e) 
+			{
+				this.scrollmove(e)
+			},
+			touchend(e)
+			{
+				let timer=setTimeout(()=>{
+					this.currentLetter=''
+					clearTimeout(timer)
+				},200)
+			},
+			scrollmove(e)
+			{
+				
+				let Y = e.touches[0].pageY;
+				let index = Math.floor( ( Y ) / this.ItemHeight)
+				if(this.maillist.list[index])
+				{
+					this.currentLetter = this.maillist.list[index].title
+					this.ScrollInto=`item${index}`
+				}
+			},
+			navto(url)
+			{
+				if(url)
+				{
+					uni.navigateTo({
+						url:`../../mail/${url}/${url}`
+					})
+				}
+			},
+			navtouser(user_id)
+			{
+				uni.navigateTo({
+					url:'../../mail/user_base/user_base?user_id='+user_id
+				})
+			}
+		}
+		
+	}
+</script>
+
+<style>
+
+</style>

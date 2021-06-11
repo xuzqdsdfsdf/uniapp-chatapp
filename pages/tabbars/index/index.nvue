@@ -1,0 +1,118 @@
+<template>
+	<view>
+		<!-- 导航栏 -->
+		<free-navbar :networkerr="!chat.isonline" title="微信" isshowdefaultcolor @searchextend="searchextend"  :noreadnum="10"></free-navbar>
+		
+		<!-- 置顶 -->
+		<block v-for="(item,index) in list " :key="index">
+			<free-chat-list @longtouch="longtouch" v-if="item.istop" @todetail="todetail" istop :item="item" :index="index"></free-chat-list>
+		</block>
+		<!-- 非置顶 -->
+		<block v-for="(item,index) in list " :key="index">
+			<free-chat-list @longtouch="longtouch" v-if="!item.istop" @todetail="todetail" :item="item" :index="index"></free-chat-list>
+		</block>
+		<!-- 弹出层组件 -->
+		<free-popup ref="popup" :bodyH="getmenuheight" :bodyW="240" >
+			<view style="width: 240upx;height: 200upx;" :style="getmenustyle" class=" bg-white d-flex flex-column">
+				<view class="flex-1 d-flex  justify-center" @click="clickevent(item.event)" hover-class="bg-light" v-for="(item,index) in menus "
+				 :key="index">
+					<text class="font-md pl-3">{{item.name}}</text>
+				</view>
+			</view>
+		</free-popup>
+	</view>
+</template>
+
+<script>
+	import mixins from '@/common/mixins/mixins.js'
+	import auth from '@/common/mixins/auth.js'
+	import {mapState} from 'vuex' 
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import freeChatList from '@/components/free-ui/free-chat-list.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		components: {
+			freeNavbar,
+			freeChatList,
+			freePopup
+		},
+		mixins:[auth,mixins],
+		data() {
+			return {
+				popupindex: -1,
+				menus: [{
+						name: '设为置顶',
+						event: 'settop'
+					},
+					{
+						name: '删除该聊天',
+						event: 'delete'
+					}
+				],
+			}
+		},
+		mounted() {
+			uni.clearStorageSync()
+		},
+		computed: {
+			...mapState({
+				list:(state)=>state.user.chatList,
+				chat:state =>state.user.chat 
+			}),
+			getmenuheight() {
+				return this.menus.length > 0 ? 100 * this.menus.length : 0
+			},
+			getmenustyle() {
+				return `height:${this.getmenuheight}upx;` 
+			}
+		},
+		mounted() {
+		},
+		onLoad() { 
+		},
+		methods: {
+			searchextend() {
+
+			},
+			longtouch({
+				left,
+				top,
+				index
+			}) {
+				this.popupindex = index;
+				this.menus[0].name=this.list[this.popupindex].istop?"取消置顶":'设为置顶'
+				this.$refs.popup.show(left, top)
+			},  
+			clickevent(e) {
+				switch (e) {
+					case 'settop':
+						this.settop()
+						break;
+					case 'delete':
+						this.delete()
+						break;
+				}
+				this.$refs.popup.hide();
+			},
+			settop() {
+				let listitem = this.list[this.popupindex];
+				listitem.istop = !listitem.istop;
+			},
+			delete() {
+				let item= this.list[this.popupindex];
+				this.chat.delChatDetail(item.id,item.chat_type)
+			},
+			todetail(e)
+			{
+				this.chat.readChatDetail(e.id,e.chat_type)
+				uni.navigateTo({
+					url:"../../msg/msgdetail?params="+encodeURIComponent(JSON.stringify({...e}))
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style>

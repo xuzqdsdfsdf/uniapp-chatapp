@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "通讯录",
+  "usingComponents": {
+    "free-popup": "/components/free-ui/free-popup",
+    "free-navbar": "/components/free-ui/free-navbar",
+    "free-list-item": "/components/free-ui/free-list-item",
+    "free-divider": "/components/free-ui/free-divider"
+  }
+}

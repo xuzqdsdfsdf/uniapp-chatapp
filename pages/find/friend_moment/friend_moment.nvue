@@ -1,0 +1,227 @@
+<template>
+	<view class="">
+		<free-tranparent-bar isshowback title="朋友圈" :scrollTop="Top">
+		</free-tranparent-bar>
+		<view class="position-relative" style="height: 620rpx;">
+			<image src="/static/images/person.png" mode="aspectFill" style="height: 590rpx;"></image>
+			<view class="position-absolute flex align-center justify-center " style="bottom:0rpx;right: 30rpx;">
+				<view class="flex align-center justify-center mr-2">
+					<text class="text-white font-lg ">Summer</text>
+				</view>
+				<image src="/static/images/demo/demo6.jpg" style="width: 110rpx;height: 110rpx;" mode=""></image>
+			</view>
+		</view>
+		<block v-for="(item,index) in list" :key="index">
+			<free-moment @reply="reply" :item="item" :index="index" @doaction="doaction"></free-moment>
+		</block>
+		<free-popup ref="action" bottom transformOrigin="center bottom" :bodyH="110" :bodyW="750">
+			<view class="">
+				<view class="border-top border-light-secondary flex justify-center align-center bg-light"
+					style="height: 110rpx">
+					<textarea v-model="commentvalue" @focus="onfocus" placeholder=""
+						style="width: 500rpx;height: 80rpx;" :auto-blur="true" focus class="bg-white border p-1" />
+					<view class="flex align-center">
+						<text class="iconfont p-1 mx-1 " style="font-size: 50upx;" @click="showemoicon">&#xe60e;</text>
+						<free-button content="发送" @click="send()" :disabled="commentvalue.length==0" class="mx-1 ">
+						</free-button>
+					</view>
+				</view>
+				<scroll-view v-if="faceModal" scroll-y="true" class="flex flex-wrap bg-light"
+					style="width: 750rpx;height: 580rpx;">
+					<view @click="changecomment(item)" class="flex align-center justify-center"
+						style="width: 107rpx;height: 107rpx;" v-for="(item,index) in faceList" :key="index">
+						<text>{{item}}</text>
+					</view>
+				</scroll-view>
+			</view>
+		</free-popup>
+		<!-- 评论框 -->
+	</view>
+</template>
+
+<script>
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeMoment from '@/components/free-ui/free-moment.nvue'
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import $T from '@/common/free-lib/time.js'
+	import freeAvatar from '@/components/free-ui/free-avatar.vue'
+	import freeTranparentBar from '@/components/free-ui/free-transparent-bar.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import $H from '@/common/free-lib/request.js'
+	import {
+		mapState
+	} from 'vuex'
+	export default {
+		data() {
+			return {
+				faceModal: false,
+				faceList: ["😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "😗", "😙", "😚",
+					"😇", "😐", "😑", "😶", "😏", "😣", "😥", "😮", "😯", "😪", "😫", "😴", "😌", "😛", "😜", "😝",
+					"😒", "😓", "😔", "😕", "😲", "😷", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😬",
+					"😰", "😱", "😳", "😵", "😡", "😠"
+				],
+				// 评论的对象
+				commentobj: -1,
+				commentvalue: '',
+				Top: 0,
+				list: [],
+				isreply: false,
+				reply_item: false,
+				ismymoment:0,
+				user_id:0
+			}
+		},
+
+		components: {
+			freeNavbar,
+			freeTranparentBar,
+			freeAvatar,
+			freeMoment,
+			freePopup,
+			freeButton
+		},
+		filters: {
+			filtertime(t) {
+				return $T.gettime(t)
+			}
+		},
+		computed: {
+			...mapState({
+				user: state => state.user.user
+			}),
+			mymomenturl()
+			{
+				return this.ismymoment?`/moment/my/1?id=${this.user_id}`:`/moment/1`
+			}
+		},
+		onLoad(e) { 
+			if(e.ismymoment)
+			{
+				this.ismymoment = 1
+			}
+			if(e.user_id)
+			{
+				this.user_id = e.user_id
+			}
+		},
+		onShow() {
+			$H.get(this.mymomenturl).then(res => {
+				console.log(res);
+				this.list = res
+			})
+		},
+		onPageScroll(e) {
+			this.Top = e.scrollTop
+		},
+		methods: {
+			doaction(e) {
+				console.log(e);
+				let index = this.list[e.index].likes.findIndex(v => v.id == this.user.id)
+				uni.showActionSheet({
+					itemList: [`${index==-1?'点赞':'取消点赞'}`, '评论'],
+					success: (res) => {
+						if (res.tapIndex == 0) {
+							// 点赞
+							console.log(e.item.moment_id);
+							$H.post('/moment/momentLike', {
+								id: e.item.moment_id
+							}).then(res => {
+								if (res == 'confirmup') {
+									this.list[e.index].likes.push({
+										name: this.user.username,
+										id: this.user.id
+									})
+								} else {
+									let nindex = this.list[e.index].likes.findIndex(v => v.id == this
+										.user.id)
+									this.list[e.index].likes.splice(nindex, 1)
+								}
+								uni.showToast({
+									title: res == 'confirmup' ? '点赞成功' : '取消点赞成功',
+									icon: 'none'
+								})
+							}).catch(err => {
+								console.log(err);
+								uni.showToast({
+									title: '点赞失败',
+									icon: 'none'
+								})
+							})
+							// this.thumbsup()
+						} else {
+							// 评论
+							this.commentvalue = '';
+							this.faceModal = false;
+							this.$refs['action'].show()
+							this.commentobj = e.index
+						}
+					}
+				})
+			},
+			onfocus() {
+				this.faceModal = false;
+			},
+			// 评论回复
+			reply({
+				item,
+				index
+			}) {
+				// 评论
+				console.log(item);
+				this.commentvalue = '';
+				this.faceModal = false;
+				this.$refs['action'].show()
+				this.reply_item = item
+				this.commentobj = index
+				console.log();
+			},
+			// 开启或者关闭表情表面板
+			showemoicon() {
+				uni.hideKeyboard()
+				setTimeout(() => {
+					this.faceModal = true
+				}, 10)
+			},
+			// 添加表情
+			changecomment(e) {
+				this.commentvalue += e
+			},
+			send(reply_id = 0) {
+				$H.post('/moment/momentComment', {
+					id: this.list[this.commentobj].moment_id,
+					content: this.commentvalue,
+					reply_id: this.reply_item ? this.reply_item.user.id : 0
+				}).then(res => {
+					uni.showToast({
+						title: '评论成功',
+						icon: 'none'
+					})
+					this.list[this.commentobj].comments.push({
+						user: {
+							id: this.user.id,
+							name: this.user.nickname || this.user.username
+						},
+						content: this.commentvalue,
+						reply: this.reply_item ? {
+							...this.reply_item.user
+						} :null
+					})
+					this.reply_item = false;
+					this.commentvalue = ''
+				}).catch(err => {
+					uni.showToast({
+						title: '评论失败',
+						icon: 'none'
+					})
+					this.commentvalue = ''
+				})
+				this.$refs.action.hide();
+			}
+		},
+
+	}
+</script>
+
+<style>
+
+</style>

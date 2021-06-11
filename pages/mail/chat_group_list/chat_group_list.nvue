@@ -1,0 +1,124 @@
+<template>
+	<view>
+		<free-navbar title="我的群聊" isshowback :showsearch="false">
+		</free-navbar>
+		<view class="">
+			<free-list-item @click="togroupchat(item)" v-for="(item,index) in list" :key="index" :src="item.avatar||'/static/images/userpic.png'">
+				<view class="flex-1 flex justify-start align-center py-4" slot="content" style="text-overflow: ellipsis;height:150rpx;overflow:hidden;line-height: 150rpx;max-width:500rpx">
+					<text class="  font-md " style="text-overflow: ellipsis;">{{item.name}}</text>
+				</view>
+			</free-list-item>
+		</view>
+		<view class="flex align-center justify-center">
+			<text class="text-muted font p-4">{{loadingtext}}</text>
+		</view>
+	</view>
+</template>
+
+<script>
+	import {
+		mapState,
+		mapActions
+	} from 'vuex'
+	import auth from '@/common/mixins/auth.js'
+	import $H from '@/common/free-lib/request.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeFormItem from '@/components/free-ui/free-form-item.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		mixins: [auth],
+		components: {
+			freeNavbar,
+			freeButton,
+			freeFormItem,
+			freeListItem
+		},
+		computed: {
+			...mapState({
+				chat:state=>state.user.chat
+			})
+		},
+		onLoad(e) {
+		  
+		},
+		async onShow() {
+			this.getData()
+		},
+		data() {
+			return {
+				loadingtext: '上拉加载更多', //加载中，没有更多
+				page: 1,
+				list: []
+			}
+		},
+		// 上拉刷新
+		onPullDownRefresh() {
+			this.page = 1;
+			this.getData(this.page).then(res => {
+				uni.showToast({
+					title: '加载完成',
+					icon: 'none'
+				})
+				uni.stopPullDownRefresh()
+				if (this.list.length < 10) return this.loadingtext = '没有更多'
+				this.loadingtext = '上拉加载更多'
+			})
+
+		},
+		// 下拉加载
+		onReachBottom() {
+			if (this.loadingtext !== '上拉加载更多') return;
+			this.page = this.page + 1;
+			this.loadingtext = '加载中'
+			this.getData(this.page).then(res => {
+			})
+		},
+		methods: {
+			confirmadd(id, status) {
+				uni.navigateTo({
+					url: `../friend_add/friend_add?type=handle_friend&user_id=${id}`
+				})
+			},
+			addnewfriend() {
+				uni.navigateTo({
+					url: '../../common/search/search'
+				})
+			},
+			...mapActions(['getapplycount']),
+			async getData(page) {
+				$H.get(`/group/${page}`).then(res => {
+					uni.stopPullDownRefresh()
+					if(this.page == 1 )
+					{
+						 this.list = res
+					}else
+					{
+						this.list = this.list.concat(res)
+					}
+					if (this.page * 10 == this.list.length) {
+						return this.loadingtext = '上拉加载更多'
+					} else {
+						this.page = this.page - 1;
+						this.loadingtext = '没有更多'
+					}
+				})
+			},
+			togroupchat(e)
+			{
+				uni.navigateTo({
+					url:'../../msg/msgdetail?params='+encodeURIComponent(JSON.stringify({
+						id:e.id, //好友id
+						avatar:e.avatar,
+						name:e.name,
+						chat_type:'group'
+					}))
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style>

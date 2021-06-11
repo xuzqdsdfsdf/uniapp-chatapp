@@ -1,0 +1,97 @@
+<template>
+	<view class="page">
+		<free-navbar :networkerr="!chat.isonline" :showsearch="false" :isshowdefaultcolor="false">
+			<text slot="options" class="iconfont pr-3">&#xe619;</text>
+		</free-navbar>
+		<view class="">
+			<free-list-item :src="!user.avatar? '/static/images/userpic.png':user.avatar" :imgsize="115" @click="tourl('user_infor')">
+				<view slot="content" class="d-flex flex-1 mb-5 flex justify-center flex-column ">
+					<view class="flex flex-1 flex-column  ">
+						<text class="flex-1  py-3 mt-2 font-lg text-dark font-weight-bold">{{user.nickname?user.nickname:'昵称'}}</text>
+						<view class="flex py-1 flex-1 text-light-muted justify-between">
+							<text class="font-sm" style="color: #ACACAC;">微信号:{{user.username}}</text>
+							<text class="iconfont font mr-4" style="color: #ACACAC;">&#xe7eb;</text>
+						</view>
+					</view>
+				</view>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="支付" showarray>
+				<text slot="icon" style="color: #47B57C;" class="iconfont font-lg">&#xe629;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="收藏" @click="tourl('user_collection')" showarray>
+				<text slot="icon" style="color: #FDCB57;" class="iconfont font-lg">&#xe643;</text>
+			</free-list-item>
+			<free-list-item text="相册" showarray @click="tomymoment">
+				<text slot="icon" style="color: #1683EC;" class="iconfont font-lg">&#xe635;</text>
+			</free-list-item>
+			<free-list-item text="卡包" showarray>
+				<text slot="icon" style="color: #1C83E6;" class="iconfont font-lg">&#xe6bf;</text>
+			</free-list-item>
+			<free-list-item text="表情" showarray>
+				<text slot="icon" style="color: #F19F4A;" class="iconfont font-lg">&#xe60e;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="设置" showarray @click="tourl('user_set')">
+				<text slot="icon" style="color: #74B1ED;" class="iconfont font-lg">&#xe60f;</text>
+			</free-list-item>
+			<view style="height: 400rpx;"></view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import mixins from '@/common/mixins/mixins.js'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import {mapState,mapActions} from 'vuex'
+	export default {
+		computed: {
+			...mapState({
+				user:(state)=>state.user.user
+			})
+		},
+		components: {
+			freeNavbar,
+			freeListItem,
+			freeDivider
+		},
+		onShow() {
+		}, 
+		destroyed() {
+		},
+		mixins:[mixins],
+		methods: { 
+			...mapActions(['inituser']),
+			tourl(url) {
+				uni.navigateTo({
+					url:`../../my/${url}/${url}`
+				})
+			},
+			user_set(url)
+			{
+				uni.navigateTo({
+					url:`../../my/${url}/${url}`
+				})
+			},
+			tomymoment()
+			{
+				uni.navigateTo({
+					url:'../../find/friend_moment/friend_moment?ismymoment=1'
+				})
+			}
+			
+		},
+		
+	}
+</script>
+
+<style scoped>
+.page
+{
+	margin: 0 0 0 0;
+	padding: 0 0 0 0 ;
+}
+</style>

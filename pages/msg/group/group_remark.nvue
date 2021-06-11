@@ -1,0 +1,76 @@
+<template>
+	<view class="page flex-1">
+		<free-navbar isshowback  :showsearch="false" title="群公告">
+			<free-button v-if="user.id == detail.user_id"  content="确定" @click="updateremark" :disabled="!detail.remark.length"  slot="options"/>
+		</free-navbar>
+		<view class="">
+			<textarea v-model="detail.remark" :disabled="user.id!=detail.user_id" style="height: 600rpx;"  class="bg-white p-2" placeholder-class="" />
+		</view>
+	</view>
+</template>
+
+<script>
+	import $H from '@/common/free-lib/request.js'
+	import auth from '@/common/mixins/auth.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import {mapState} from 'vuex'
+	export default {
+		mixins:[auth],
+		components: {
+			freeNavbar,
+			freeButton,
+			freeListItem
+		},
+		computed:{
+			...mapState({
+				user:state=>state.user.user
+			})
+		},
+		data() {
+			return {
+				detail:{
+					id:0,
+					user_id:0,
+					remark:''
+				},
+				callback:null
+			}
+		},
+		onLoad(e) {
+			// 此处为uni页面之间相互传值监听updatetag事件
+			// 获取参数
+			if (!e.params) {
+				return this.backToast()
+			}
+			let detail = e.params
+			detail = JSON.parse(decodeURIComponent(detail))
+			this.detail = detail
+		},
+		methods: {
+			updateremark()
+			{
+				$H.post('/group/updategroupremark',{
+					id:this.detail.id,
+					remark:this.detail.remark
+				}).then(res=>{
+					uni.$emit('updateremark',this.detail.remark)
+					uni.showToast({
+						title:'修改成功' 
+					})
+					let timer = setTimeout(()=>{
+						uni.navigateBack({
+							delta:1
+						})
+						clearTimeout(timer)
+					},300)
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

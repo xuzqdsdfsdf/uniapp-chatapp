@@ -1,0 +1,29 @@
+<template>
+	<view>
+		<freeNavbar title="位置" isshowback></freeNavbar>
+		<map style="left: 0;right: 0;bottom: 0;" :style="'top:'+this.navheight+'px'" class="position-fixed" ></map>
+	</view>
+</template>
+
+<script>
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		data() {
+			return {
+				statusbarheight: 0,
+				navheight:0
+			}
+		},
+		components: {
+			freeNavbar
+		},
+		onLoad() {
+			this.statusbarheight = plus.navigator.getStatusbarHeight()
+			this.navheight = this.statusbarheight + uni.upx2px(90)
+		}
+	}
+</script>
+
+<style>
+
+</style>

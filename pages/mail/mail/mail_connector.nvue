@@ -1,0 +1,371 @@
+<template> 
+	<div>
+		<!-- 头部导航栏 -->
+		<free-navbar isshowback isshowdefaultcolor :showsearch="false" title="选择">
+			<free-button @click="changemode" :disabled="!selectedList.length" :content="btntext" slot="options">
+			</free-button>
+		</free-navbar>
+		<view class="position-relative">
+			<scroll-view scroll-with-animation scroll-y :scroll-into-view="ScrollInto"
+				:style="'height:'+scrollheight+'px'">
+				<view v-for="(item,index) in mailGroupList.list" :key="index" :id="'item'+index">
+					<free-divider>
+						<view slot="divider" class="flex align-center px-3">
+							<text class="font-sm">{{item.title}}</text>
+						</view>
+					</free-divider>
+					<view class="flex align-center" v-for="(iitem,iindex) in item.list" :key="iindex">
+						<view @click="select(iitem,iindex)" slot="rightcontent"
+							class="rounded-circle ml-2  border  flex align-center justify-center"
+							style="width: 45rpx;height: 45rpx;padding: 0">
+							<view v-if="iitem.isselected" class="main-bg-color rounded-circle"
+								style="width: 37rpx;height: 37rpx;">
+							</view>
+						</view>
+						<free-list-item :src="iitem.src?iitem.src:'/static/images/demo/demo5.jpg'" :text="iitem.name">
+						</free-list-item>
+					</view>
+				</view>
+			</scroll-view>
+			<view class="position-fixed   right-0 bottom-0 flex mr-1 flex-column" style="width: 50rpx;"
+				:style="'top:'+top+'px'" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
+				<view class="flex-1   flex  align-center justify-center" v-for="(item,index) in mailGroupList.indexlist"
+					:key="index">
+					<text class="font-sm text-light-muted">{{item}}</text>
+				</view>
+			</view>
+		</view>
+		<view v-if="currentLetter.length>0"
+			class="position-fixed  left-0 right-0 bottom-0 top-0 flex align-center justify-center">
+			<view class="bg-light rounded-circle flex align-center justify-center"
+				style="width: 100rpx;height: 100rpx;">
+				<text class="font-lg">{{currentLetter}}</text>
+			</view>
+		</view>
+		<!--  -->
+		<!--  -->
+		<free-confirm ref="confirm" title="发送给:" :confirmH="550" :confirmW="600">
+			<view slot="content" class="">
+				<view class="flex align-center mb-2">
+					<view class="flex align-center">
+						<image :src="to_avatar||'/static/images/demo/demo6.jpg'" style="width: 80rpx;height: 80rpx;"
+							mode=""></image>
+						<text class="font-sm ml-2">{{to_name}}</text>
+					</view>
+				</view>
+				<view class="m-3">
+					<text class="font-sm text-light-muted">{{getmessagedata}}</text>
+				</view>
+				<view class="p-1 m-2 border-bottom">
+					<input type="text" v-model="sendcontent" placeholder="给朋友留言" style="height: 60rpx;" class="font-sm "
+						placeholder-class=" text-light-muted font-sm " />
+				</view>
+			</view>
+		</free-confirm>
+	</div>
+</template>
+
+<script>
+	import {
+		mapState,
+		mapGetters,
+		mapActions
+	} from 'vuex'
+	import freeConfirm from '@/components/free-ui/free-confirm.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import $H from '@/common/free-lib/request.js'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	export default {
+		components: {
+			freePopup,
+			freeNavbar,
+			freeListItem,
+			freeDivider,
+			freeButton,
+			freeConfirm
+		},
+		data() {
+			return {
+				type: '',
+				ismutiple: false,
+				top: 0,
+				ScrollInto: '',
+				windowHeight: 0,
+				scrollheight: 0,
+				currentLetter: '',
+				selectedList: [],
+				limit:1,
+				group_id:0,
+				to_avatar:'',
+				to_name:'',
+				to_id:0,
+				user_detail:{
+					name:'',
+					avatar:'',
+					id:0,
+					username:''
+				}
+			}
+		},
+		onLoad(e) {
+			if(e.user_detail)
+			{
+				let user_detail = JSON.parse(e.user_detail);
+				this.user_detail={
+					name:user_detail.to_name,
+					avatar:user_detail.to_avatar,
+					id:user_detail.to_id,
+					username:user_detail.to_username
+				}
+				console.log(this.user_detail)
+			}
+			this.initGroupList({id:this.user_detail.id});
+			console.log(this.list);
+			let res = uni.getSystemInfoSync();
+			this.top = res.statusBarHeight + uni.upx2px(90)
+			this.windowHeight = res.windowHeight;
+			this.scrollheight = this.windowHeight - this.top
+			if (e.type) {
+				this.type = e.type;
+			}
+			if(e.group_id)
+			{
+				this.group_id=e.group_id
+			}
+			if(e.params)
+			{
+				let selectedList = JSON.parse(e.params)
+				this.selectedList = selectedList.selectedList
+				this.$store.dispatch('updateGroupList',selectedList.selectedList.map(v=>v.user_id))
+			}
+			
+			this.limit = e.limit ? parseInt(e.limit) : 9
+		},
+		computed: { 
+			...mapState({
+				chat:state=>state.user.chat,
+				list: state => state.user.maillist,
+				mailGroupList: state => state.user.mailGroupList
+			}),
+			// 被发送人名称
+			getmessagedata()
+			{
+				if(this.selectedList.length==0)return '';
+				let item = this.selectedList[0]
+				return `${this.user_detail?`[个人名片]${this.user_detail.name}`:`[个人名片]${item.name||item.nickname}`}`
+			},
+			ItemHeight() {
+				return (this.windowHeight - this.top) / this.mailGroupList.list.length
+			},
+			selectedlength() {
+				return this.selectedList.length;
+			},
+			btntext() {
+				let title = ''
+				switch(this.type)
+				{
+					case 'create_group':
+					title = '创建群聊'
+					break;
+					case 'card':
+					title = '发送好友'
+					break;
+					default:
+					title = '完成'
+				}
+				return title
+			}
+		},
+		destroyed() {
+			this.clearGroupList()
+		},
+		methods: {
+			...mapActions(['initGroupList', 'clearGroupList']),
+			touchstart(e) {
+				this.scrollmove(e)
+			},
+			touchmove(e) {
+				this.scrollmove(e)
+			},
+			touchend(e) {
+				let timer = setTimeout(() => {
+					this.currentLetter = ''
+					clearTimeout(timer)
+				}, 200)
+			},
+			changemode() {
+				// 创建群聊
+				switch(this.type)
+				{
+					// 创建群聊
+					case 'create_group' :
+					$H.post('/group/addgroup',{
+						ids:this.selectedList.map(v=>v.user_id)
+					}).then(res => { 
+						if(this.type)
+						{
+							uni.showToast({
+								title:'创建成功'
+							})
+							uni.navigateBack({
+								delta:1
+							})
+						}
+					}) 
+					break;
+					// 卡片
+					case 'card':
+					let list = this.selectedList.map(v => {
+						delete v.isselected 
+						return v
+					}) 
+					uni.$emit('handlecardmessage',list)
+					uni.navigateBack({
+						delta: 1
+					})
+					break;
+					case 'message':
+					 list = this.selectedList.map(v => {
+						delete v.isselected 
+						return v
+					}) 
+					uni.$emit('handleselected',list)
+					uni.navigateBack({
+						delta: 1
+					})
+					break;
+					// 添加好友到群聊
+					case 'add_group_user':
+					this.addGroupUser();
+					break;
+					case 'sendFriendtoFriend':
+					this.sendFriendtoFriend();
+					break;
+					// 朋友圈可见选项
+					default:
+					let seelist = this.selectedList.map(v => {
+						delete v.isselected 
+						return v
+					}) 
+					uni.$emit('handleOnsee',{
+						seelist,
+						type:this.type
+					})
+					uni.navigateBack({
+						delta:1
+					})
+					break;
+					
+				}
+				
+			},
+			// 转发名片
+			sendFriendtoFriend()
+			{
+				let item = this.selectedList[0]
+				this.to_name = item.name;
+				this.to_avatar = item.avatar
+				this.$refs['confirm'].open((close)=>{
+					let messagedata = this.chat.formatMessagedata({
+						type: 'card',
+						data: this.user_detail.avatar || '/static/images/demo/demo6.jpg',
+						options: {
+							name:this.user_detail.name,
+							username:this.user_detail.username,
+							user_id:this.user_detail.id
+						},
+						chat_type: 'user',
+						to_name: item.name,
+						to_id: item.user_id
+					})
+					this.chat.send(messagedata).then(res=>{
+						uni.showToast({
+							title:'推荐成功',
+							icon:'none'
+						})
+					})
+					close()
+				});
+			},
+			// 发送卡片
+			addGroupUser()
+			{
+				console.log(this.selectedList)
+				$H.post('/group/invite_add_group',{
+					group_id:this.group_id,
+					id:this.selectedList[0].user_id
+				}).then(res=>{
+					uni.showToast({
+						title:'邀请成功',
+						icon:'none'
+					})
+					this.selectedList.forEach(v=>v.isselected=false)
+					this.selectedList=[]
+					uni.navigateBack({
+						delta:1
+					})
+				}).catch(err=>{
+					uni.showToast({
+						title:err,
+						icon:'none'
+					})
+				})
+			},
+			scrollmove(e) {
+				let Y = e.touches[0].pageY;
+				let index = Math.floor((Y) / this.ItemHeight)
+				if (this.list.list[index]) {
+					this.currentLetter = this.mailGroupList.list[index].title
+					this.ScrollInto = `item${index}`
+				}
+			},
+			// 选中联系人
+			select(item, index) {
+				// 选中 
+				if(this.type=='add_group_user' || this.type == 'sendFriendtoFriend')
+				{
+					if(this.list.length>1)
+					{
+						this.selectedList.forEach(v=>{
+							v.isselected=false;
+						})
+						this.selectedList=[]
+					}
+					item.isselected = !item.isselected
+					if (item.isselected) {
+						// 选中
+						this.selectedList.push(item)
+					}else
+					{
+						this.selectedList=[]
+					}
+				}else
+				{
+					if (!item.isselected && this.selectedlength === this.limit) {
+						return uni.showToast({
+							title: `最多可选择${this.limit}个联系人`,
+							icon: 'none'
+						})
+					}
+					item.isselected = !item.isselected
+					if (item.isselected) {
+						// 选中
+						this.selectedList.push(item)
+					} else {
+						let index = this.selectedList.findIndex(v => v === item)
+						this.selectedList.splice(index, 1)
+						// 取消选中
+					}
+				}
+			},
+		}
+
+	}
+</script>
+
+<style>
+
+</style>

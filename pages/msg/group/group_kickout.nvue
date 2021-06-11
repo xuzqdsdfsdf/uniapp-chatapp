@@ -1,0 +1,138 @@
+<template>
+	<view>
+		<free-navbar isshowback isshowdefaultcolor :showsearch="false" title="踢出成员">
+			<free-button @click="complete" :disabled="!selectedList.length" content="完成" slot="options">
+			</free-button>
+		</free-navbar>
+		<view class="flex align-center p-2 border-bottom">
+			<text class="iconfont p-2 font-md text-muted">&#xe67c;</text>
+			<input type="text" class="flex-1 " v-model="keyword" placeholder="搜索" />
+		</view>
+		<view class="">
+			<view class="flex align-center" v-for="(item,index) in allList" :key="index">
+				<view @click="select(item,index)" slot="rightcontent"
+					class="rounded-circle ml-2  border  flex align-center justify-center"
+					style="width: 45rpx;height: 45rpx;padding: 0">
+					<view v-if="item.isselected" class="main-bg-color rounded-circle"
+						style="width: 37rpx;height: 37rpx;">
+					</view>
+				</view>
+				<free-list-item :text="item.nickname" :src="item.avatar||'/static/images/demo/demo6.jpg'">
+				</free-list-item>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import auth from '@/common/mixins/auth.js'
+	import $H from '@/common/free-lib/request.js'
+	export default {
+		components: {
+			freeNavbar,
+			freeButton,
+			freeListItem
+		},
+		mixins: [auth],
+		data() {
+			return {
+				selectedList: [],
+				list: [],
+				group_id: 0,
+				keyword:'',
+				type:'kickoutuser'
+			}
+		},
+		computed: {
+			searchList() {
+				if (this.keyword.length==0) {
+					return this.list
+				}
+				let filterlist = this.list.filter(v => {
+					let {
+						nickname
+					} = v;
+					return nickname.indexOf(this.keyword) !== -1
+				})
+				return filterlist
+			},
+			allList()
+			{
+				return this.searchList.length==0?[]:this.searchList
+			}
+		},
+		onLoad(e) {
+			if (!e.params || !e.type) return this.backToast()
+			this.group_id = e.group_id;
+			this.type = e.type;
+			let data = JSON.parse(e.params)
+			this.list = data.list.map(v => {
+				return {
+					...v,
+					isselected: false
+				}
+			})
+		},
+		methods: {
+			complete() {
+				uni.showModal({
+					title: '是否踢出该成员',
+					confirmColor: '#F54E40', //删除字体的颜色
+					cancelColor: '#000', //取消字体的颜色
+					cancelText: "取消", // 取消按钮的文字  
+					confirmText: "确认", // 确认按钮文字
+					success: (res) => {
+						if (!res.confirm) return;
+						$H.post(`/group/kickout/${this.selectedList[0].id}`, {
+							group_id: this.group_id
+						}).then(res => {
+							let index = this.list.findIndex(v => v.id == this.selectedList[0].id)
+							uni.$emit('kickout', this.selectedList[0].id)
+							uni.showToast({
+								title: '踢出成功',
+								icon: 'none'
+							})
+							uni.navigateBack({
+								delta:1
+							})
+							if (index !== -1) {
+								this.list.splice(index, 1);
+								this.selectedList = []
+							}
+						}).catch(err => {
+							uni.showToast({
+								title: err,
+								icon: 'none'
+							})
+						})
+					}
+				})
+			},
+			
+			select(item, index) {
+				if (!item.isselected && this.selectedList.length === 1) {
+					return uni.showToast({
+						title: `最多可选择1个群成员`,
+						icon: 'none'
+					})
+				}
+				item.isselected = !item.isselected
+				if (item.isselected) {
+					// 选中
+					this.selectedList.push(item)
+				} else {
+					let index = this.selectedList.findIndex(v => v === item)
+					this.selectedList.splice(index, 1)
+					// 取消选中
+				}
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style>

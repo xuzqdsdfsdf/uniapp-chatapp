@@ -1,0 +1,89 @@
+<template>
+	<view class="page flex-1">
+		<free-navbar isshowback :showsearch="false" title="设置朋友圈动态权限">
+		</free-navbar>
+		<view class="bg-white">
+			<free-list-item text="不让他看我" :icon="false">
+				<switch @change="handlechange('lookme',$event.detail.value)" :checked="!detail.lookme"
+					slot="rightcontent" color="#08C060"></switch>
+			</free-list-item>
+			<free-list-item text="不看他" :icon="false">
+				<switch @change="handlechange('lookhim',$event.detail.value)" :checked="!detail.lookhim"
+					slot="rightcontent" color="#08C060"></switch>
+			</free-list-item>
+		</view>
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import $H from '@/common/free-lib/request.js'
+	export default {
+		mixins: [auth],
+		data() {
+			return {
+				detail: {
+					id: 0,
+					"username": "",
+					"nickname": "",
+					"email": "",
+					"avatar": "",
+					"phone": "",
+					"sex": "男",
+					"sign": "",
+					"area": "",
+					"isblack": 0,
+					"lookme": 1,
+					"lookhim": 1,
+					"star": 0,
+					"tags": []
+				},
+			}
+		},
+		components: {
+			freeNavbar,
+			freeListItem
+		},
+		onLoad(e) {
+			if (!e.user_id) {
+				return this.backToast()
+			}
+			this.detail.id = e.user_id
+		},
+		onShow() {
+			this.getData()
+		},
+		methods: {
+			getData() {
+				$H.post(`/friend/frienddetail/${this.detail.id}`).then(res => {
+					if (!res) {
+						return this.backToast()
+					}
+					this.detail = {
+						...res,
+						id: this.detail.id
+					}
+				})
+			},
+			handlechange(event, e) {
+				this.detail[event] = e ? 0 : 1
+				$H.post('/friend/setmomentauth/' + this.detail.id, {
+					...this.detail
+				}).then(res => {
+					 
+				}).catch(err=>{
+					uni.showToast({
+						title:'操作失败',
+						icon:'none'
+					})
+				})
+			} 
+		}
+	}
+</script>
+
+<style>
+
+</style>

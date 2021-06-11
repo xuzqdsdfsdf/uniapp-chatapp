@@ -1,0 +1,366 @@
+<template>
+	<view class="page flex-1">
+		<free-navbar isshowback :showsearch="false">
+			<view slot="options">
+				<text class="iconfont mr-2" @click="topersonset">&#xe65d;</text>
+			</view>
+		</free-navbar>
+		<view class="p-3 border-bottom  align-center flex bg-white">
+			<free-avatar :src="detail.avatar?detail.avatar:'/static/images/demo/demo5.jpg'" rounded size="120" class="m-2"></free-avatar>
+			<view class="flex flex-column flex-1">
+				<view class="flex align-center justify-between">
+					<text class="font-lg font-weight-bold">{{detail.nickname}}</text>
+					<image v-if="detail.star" src="/static/images/star.png" style="width: 40rpx;height: 40rpx;">
+					</image>
+				</view>
+				<text class="font text-light-muted mt-1">微信号 : {{detail.username}}</text>
+			</view>
+		</view>
+		<view>
+			<free-list-item showarray :icon="false" @click="totagset" v-if="detail.friend">
+				<view slot="content" class="flex align-center flex-1">
+					<text class="flex align-center py-4  font-md" @click="totagset">标签</text>
+					<text class="pl-4 font-md text-light-muted" v-if="!detail.tags.length">未设置</text>
+					<text v-else class="pl-4 font-md text-light-muted" v-for="(item,i) in showtags"
+						:key="i">{{item}}</text>
+				</view>
+			</free-list-item>
+			<free-divider dividerheight="15"></free-divider>
+			<free-list-item showarray :icon="false" @click="tomoment">
+				<view slot="content" class="flex align-center flex-1">
+					<text class="flex align-center py-4  font-md" >朋友圈</text>
+					<view class="flex-1 ml-2 flex align-center">
+						<image v-for="i in 3" :key="i" src="/static/images/demo/demo1.jpg"
+							style="height: 80rpx;width: 60rpx;" class="mx-2" mode=""></image>
+					</view>
+				</view>
+			</free-list-item>
+			<free-list-item showarray text="更多信息" :icon="false"></free-list-item>
+			<free-divider dividerheight="15"></free-divider>
+			<!-- 已经是好友 -->
+			<view v-if="detail.friend" @click="doevent" class="flex align-center justify-center py-4 bg-white " hover-class="bg-hover-light">
+				<text v-if="!detail.isblack" class="iconfont font-md" style="color: #617189;">&#xe6cd;</text>
+				<text class="font-md mx-2 " style="color: #617189;">{{detail.isblack?'移出黑名单':'发信息'}}</text>
+			</view>
+			<!-- 不是好友 -->
+			<view @click="addfriend" v-else class="flex align-center justify-center py-4 bg-white " hover-class="bg-hover-light">
+				<text class="font-md mx-2 " style="color: #617189;">添加好友</text>
+			</view>
+		</view>
+		<free-popup ref="popup" :width="750" :popupH="actionHeight" :animatedtype="false" :animationduration="300" :mask="true"
+			MaskColor>
+			<view>
+				<view v-for="(item,index) in popList" class="flex align-center" :key="index" style="height: 100rpx;" 
+					hover-class="bg-hover-light" @click="popupclick(item)">
+					<text class="iconfont pl-2 font-md">{{item.icon}}</text>
+					<text class="pl-2 font-md">{{item.text}}</text>
+				</view>
+				<!-- <free-list-item :text="item.text" hover-class="bg-secondary"  style="height: 100rpx;" @click="popupclick(item)" v-for="(item,index) in popList" :key="index">
+					<text class="iconfont font" slot="icon">{{item.icon}}</text>
+				</free-list-item> -->
+				<!-- <free-list-item text="把他推荐给朋友" style="height: 100rpx;"  @click="popupclick">
+					<text class="iconfont font" slot="icon"></text>
+				</free-list-item>
+				<free-list-item text="设为星标朋友" style="height: 100rpx;"  @click="popupclick">
+					<text class="iconfont font" slot="icon"></text>
+				</free-list-item>
+				<free-list-item text="设置朋友圈和动态权限" style="height: 100rpx;"  @click="popupclick">
+					<text class="iconfont font" slot="icon"></text>
+				</free-list-item>
+				<free-list-item text="加入黑名单" style="height: 100rpx;"  @click="popupclick">
+					<text class="iconfont font" slot="icon"></text>
+				</free-list-item>
+				<free-list-item text="投诉" style="height: 100rpx;"  @click="popupclick">
+					<text class="iconfont font" slot="icon">&#xe618;</text>
+				</free-list-item> -->
+			</view>
+		</free-popup>
+		<free-confirm ref="confirm" :confirmH="350" :confirmW="550">
+			<view class="flex align-center justify-center flex-1" slot="content">
+				<text class="font-md ">{{this.detail.isblack ? '移出黑名单' : '加入黑名单'}}</text>
+			</view>
+		</free-confirm>
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import freeConfirm from '@/components/free-ui/free-confirm.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import freeAvatar from '@/components/free-ui/free-avatar.vue'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import $H from '@/common/free-lib/request.js'
+	export default {
+		mixins: [auth],
+		components: {
+			freeNavbar,
+			freeAvatar,
+			freeListItem,
+			freeDivider,
+			freePopup,
+			freeConfirm
+		},
+		data() {
+			return {
+				// 标签
+				showdialog:false,
+				nickname: '徐浩',
+				detail: {
+					id:0,
+					"username": "",
+					"nickname": "",
+					"email": "",
+					"avatar": "",
+					"phone": "",
+					"sex": "男",
+					"sign": "",
+					"area": "",
+					"isblack": 0,
+					"lookme": 1,
+					"lookhim": 1,
+					"star": 0,
+					"tags": []
+				},
+				user_id: 0,
+				chat_type:'user'
+			}
+		},
+		computed: {
+			showtags() {
+				return this.detail.tags.filter((v, i) => i < 3)
+			},
+			actionHeight()
+			{
+				return this.popList.length*100;
+			},
+			popList()
+			 {
+				return [{
+				 		icon: '\ue641',
+				 		text: '设置标注和标签',
+				 		path: `../user_remark/user_remark?user_id=${this.detail.id}&params=${JSON.stringify							({
+							nickname:this.detail.nickname,
+							tags:this.detail.tags?this.detail.tags.join(','):[]
+						})}`
+				 	},
+				 	{
+				 		icon: '\ue610',
+				 		text: '把他推荐给朋友',
+				 		path: `../mail/mail_connector?type=sendFriendtoFriend&limit=1&user_detail=${JSON.stringify({
+							to_avatar:this.detail.avatar,
+							to_name:this.detail.nickname||this.detail.username,
+							to_id:this.detail.id,
+							to_username:this.detail.username
+						})}`
+				 	},
+				 	{
+				 		icon: '\ue642',
+				 		text: this.detail.star ? '取消星标朋友' : '设为星标朋友',
+				 		event: 'star',
+				 		path: ''
+				 	},
+				 	{
+				 		icon: '\ue667',
+				 		text: '设置朋友圈和动态权限',
+				 		path: '../user_moment_set/user_moment_set?user_id='+this.detail.id
+				 	},
+				 	{
+				 		icon: '\ue634',
+				 		text: this.detail.isblack ? '移出黑名单' : '加入黑名单',
+				 		path: '',
+				 		event: 'black'
+				 	},
+				 	{
+				 		icon: '\ue618',
+				 		text: '举报',
+				 		path: `../user_report/user_report?user_id=${this.detail.id}&reported_type=user`
+				 	},
+					{
+						icon: '\ue62f',
+						text: '删除',
+						path: ``,
+						event:'deletefriend'
+					}
+				 ]
+			 }
+			 
+		},
+		onBackPress()
+		{
+			if(this.showdialog)
+			{
+				this.$refs.popup.hide();
+				this.showdialog=false;
+				return true
+			} 
+			return false;
+			
+		},
+		onLoad(e) {
+			uni.$on('finish', (res) => {
+				this.nickname = res.nickname
+				this.tagList = res.tagList
+			})
+			if (!e.user_id) {
+				return this.backToast()
+			}
+			this.detail.id = e.user_id
+		},
+		beforeDestroy() {
+			uni.$off('finish')
+		},
+		onShow()
+		{
+			this.getData()
+		},
+		methods: {
+			// 跳转到设置标签页
+			totagset()
+			{
+				uni.navigateTo({
+					url: `../user_remark/user_remark?user_id=${this.detail.id}&params=${JSON.stringify							({
+							nickname:this.detail.nickname,
+							tags:this.detail.tags?this.detail.tags.join(','):[]
+						})}`
+				})
+			},
+			topersonset() {
+				this.showdialog=true;
+				this.$refs.popup.show();
+			},
+			tomoment()
+			{
+				uni.navigateTo({
+					url:`../../find/friend_moment/friend_moment?user_id=${this.detail.id}&ismymoment=1`
+				})
+			},
+			popupclick(e) {
+				let timer = setTimeout(()=>{ 
+					if (e.path) this.navigationto(e.path)
+					if (e.event) this[`set${e.event}`](e);
+					this.showdialog=false;
+				},200)
+				this.$refs.popup.hide();
+			},
+			navigationto(e) {
+				if(!e)return;
+				uni.navigateTo({
+					url: e
+				})
+			},
+			setstar(e) {
+				// 修改状态
+				let msg = this.detail.star ? '取消星标好友' : '设为星标好友'
+				this.detail.star = this.detail.star ? 0 : 1
+				// popup隐藏后再改变
+				setTimeout(() => {
+					$H.post('/friend/setstar/'+this.detail.id,{star:this.detail.star}).then(res=>{
+						setTimeout(() => {
+							uni.showToast({
+								title:msg+'成功',
+								icon:'none'
+							})
+							// 修改poplist中的文字
+							e.text=msg
+						}, 200)
+					})
+				}, 200)
+			},
+			setblack(e) {
+				console.log(this.detail);
+				// uni.showModal({
+				// 	title:'提示',
+				// 	content: this.isblack?'移出黑名单':'加入黑名单',
+				// 	success:(res)=>{
+				// 		if(res.confirm)
+				// 		{
+				// 			this.isblack = this.isblack?false:true
+				// 			setTimeout(()=>{
+				// 				e.text = this.isblack?'移出黑名单':'加入黑名单'
+				// 			},200)
+				// 		}
+				// 	}
+				// })
+				this.$refs['confirm'].open((close) => {
+					// 修改状态
+					let msg = this.detail.isblack ? '移出黑名单' : '加入黑名单'
+					this.detail.isblack = this.detail.isblack ? 0 : 1
+					// 提交申请
+					$H.post('/friend/setblack/'+this.detail.id,{isblack:this.detail.isblack}).then(res=>{
+						setTimeout(() => {
+							uni.showToast({
+								title:msg+'成功'
+							})
+							// 修改poplist中的文字
+						}, 200)
+					})
+					close()
+				});
+			},
+			getData() {
+				$H.post(`/friend/frienddetail/${this.detail.id}`).then(res => {
+					if(!res)
+					{
+						return this.backToast()
+					}
+					this.detail={...res,id:this.detail.id}
+				})
+			},
+			// 添加好友
+			addfriend()
+			{
+				uni.navigateTo({
+					url:'../friend_add/friend_add?user_id='+this.detail.id+'&type=add_friend'
+				})
+			},
+			doevent()
+			{
+				// 设为黑名单
+				if(this.detail.isblack)
+				{
+					return this.setblack() 
+				}
+				// 发送消息给用户
+				uni.navigateTo({
+					url:'../../msg/msgdetail?params='+encodeURIComponent(JSON.stringify({
+						id:this.detail.id, //好友id
+						avatar:this.detail.avatar,
+						name:this.detail.name,
+						username:this.detail.nickname,
+						chat_type:this.chat_type
+					}))
+				})
+			},
+			// 删除好友
+			setdeletefriend(item)
+			{
+				uni.showModal({
+					title:'是否删除该好友',
+					confirmText:'确定',
+					cancelText:'取消',
+					success:res=>{
+						if(res.cancel)return;
+						// 删除该好友
+						$H.get(`/friend/delete/${this.detail.id}`).then(res=>{
+							uni.showToast({
+								title:'删除好友成功',
+								icon:'none'
+							})
+							setTimeout(()=>{
+								uni.navigateBack({
+									delta:1
+								})
+							},1000)
+						})
+					}
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

@@ -1,0 +1,728 @@
+<template>
+	<view class="page">
+		<!-- 头部 -->
+		<free-navbar isshowback isshowdefaultcolor :title="chat.TO.username||chat.TO.name"
+			:noreadnum="allnoreadnum>0?allnoreadnum:''" :showsearch="false">
+			<view slot="options">
+				<text class="iconfont mr-2" @click="toset">&#xe65d;</text>
+			</view>
+		</free-navbar>
+		<!-- 聊天窗体 -->
+		<scroll-view class="position-fixed page left-0 right-0  px-3 " ref="chatbody" :show-scrollbar="false" scroll-y
+			:style="'top:'+navheight+'px;'+'bottom:'+chatbodybottom+'px'" :scroll-top="9999">
+			<view class="flex align-center justify-center mb-2">
+				<text class="text-light-muted font-sm ">{{loadingtext}}</text>
+			</view>
+			<block v-for="(item,index) in list" :key="index">
+				<free-chat-item :isshownickname="chat.TO.chat_type=='group' && chat.TO.shownickname " @resend="resend"
+					:isself="item.from_id == user.id" @touser='touser(item)' @preview="preview($event)"
+					@longtouch="longtouch" :item="item" ref="chatitem"
+					:lasttime="index>0 ? list[index-1].created_time : 0" :Index="index"></free-chat-item>
+			</block>
+		</scroll-view>
+		<!-- 点击聊天窗体关闭action -->
+		<div v-if="mode==='action'|| mode==='emoticon'" class="position-fixed  top-0 right-0  left-0"
+			:style="'bottom:'+getcoverbottom+'px'" @click="hideactiondefault"></div>
+		<!-- 底部输入框 -->
+		<view class="flex  align-center position-fixed  bg-white left-0 right-0" :style="'bottom:'+inputbottom+'px'"
+			style="height: 105upx">
+			<template v-if="mode!=='audio'">
+				<text class="iconfont p-1" style="font-size: 50upx;" @click="changemode">&#xe7d4;</text>
+				<textarea v-model="sendcontent" placeholder="" @focus="onfocus" :adjust-position="false"
+					style="height: 70upx" @click="onfocus" :auto-blur="true" class="bg-white border flex-1 p-1" />
+			</template>
+			<template v-else>
+				<text class="iconfont p-1" style="font-size: 50upx;" @click="changemode">&#xe608;</text>
+				<view @click="recording" @touchstart="audiotouchstart" @touchmove="audiotouchmove"
+					@touchend="audiotouchend" @touchcancel="audiotouchcancel"
+					class="rounded flex-1 p-1  flex align-center justify-center "
+					:class="isrecording?'bg-hover-light':'bg-white'" style="height: 80rpx;">
+					<text class="font text-dark">{{isrecording?'松开 发送':'按住 说话'}}</text>
+				</view>
+			</template>
+			<text class="iconfont  p-1 " @click="openActionOrEmoticon('emoticon')"
+				style="font-size: 50upx;">&#xe613;</text>
+			<text v-if="issend" @click="openActionOrEmoticon('action')" class="iconfont py-1 px-2"
+				style="font-size: 50upx;">&#xe61c;</text>
+			<free-button v-else content="发送" :disabled="false" @click="send('text')"></free-button>
+		</view>
+		<!-- 弹出层 -->
+		<free-popup ref="popup" :bodyH="getmenuheight" :bodyW="320" :transformOrigin="transformOrigin">
+			<view style="width:230upx" :style="getmenustyle" class=" bg-white d-flex flex-column">
+				<view class="flex-1 flex   align-center" @click="clickevent(item.event,item)"
+					hover-class="bg-hover-light" v-for="(item,index) in extendsmenu" :key="index">
+					<text class="ml-2 py-3  borderbot font flex-1 " style="box-sizing: border-box;">{{item.name}}</text>
+				</view>
+			</view>
+		</free-popup>
+		<!-- 拓展菜单 -->
+		<free-popup ref="action" bottom :mask="false" transformOrigin="center bottom">
+			<view class="border-top border-light-secondary bg-light" style="height: 580upx">
+				<swiper :indicator-dots="getActionOrEmoticonList.length>1" :autoplay="false" style="height: 510upx;">
+					<swiper-item class="row" v-for="(item,index) in getActionOrEmoticonList" :key="index">
+						<block v-for="(item2,index2) in item" :key="index2">
+							<view class="col-3 flex flex-column align-center justify-center" style="height: 255upx;"
+								@click="actionevent(item2)">
+								<image :src="item2.icon" mode="widthFix" style="width: 100upx;height: 100upx;"></image>
+								<text class="font-sm text-light-muted mt-2">{{item2.name}}</text>
+							</view>
+						</block>
+					</swiper-item>
+				</swiper>
+			</view>
+		</free-popup>
+		<!-- 录音模块 -->
+		<view v-if="isrecording" class="position-fixed top-0 left-0 right-0  flex align-center justify-center"
+			style="bottom: 105rpx;">
+			<view class="flex align-center flex-column justify-center"
+				style="height: 360rpx;width: 360rpx;background-color: rgba(0,0,0,.5);">
+				<image src="/static/audio/recording.gif" mode="widthFix" style="width: 150rpx;height: 150rpx;" />
+				<text class="font text-white mt-3">{{unrecord ? '松开手指 取消发送':'手指上滑，取消发送'}}</text>
+			</view>
+		</view>
+		<free-confirm ref="confirm" title="发送给:" :confirmH="550" :confirmW="600">
+			<view slot="content" class="">
+				<view class="flex align-center mb-2">
+					<view class="flex align-center">
+						<image :src="carddetail.data||'/static/images/demo/demo6.jpg'"
+							style="width: 80rpx;height: 80rpx;" mode=""></image>
+						<text class="font-sm ml-2">{{chat.TO.username}}</text>
+					</view>
+				</view>
+				<view class="m-3">
+					<text class="font-sm text-light-muted">[个人名片]{{carddetail.options.name}}</text>
+				</view>
+				<view class="p-1 m-2 border-bottom">
+					<input type="text" v-model="sendcontent" placeholder="给朋友留言" style="height: 60rpx;" class="font-sm "
+						placeholder-class=" text-light-muted font-sm " />
+				</view>
+			</view>
+		</free-confirm>
+	</view>
+</template>
+
+<script>
+	import $H from '@/common/free-lib/request.js'
+	const dom = weex.requireModule('dom')
+	const RECORD = uni.getRecorderManager();
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freePopup from '@/components/free-ui/free-popup.vue'
+	import freeChatItem from '@/components/free-ui/free-chat-item.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import mixins from '@/common/mixins/mixins.js'
+	import freeConfirm from '@/components/free-ui/free-confirm.vue'
+	import {
+		mapActions,
+		mapState
+	} from 'vuex'
+	import auth from '@/common/mixins/auth.js'
+	export default {
+		components: {
+			freeNavbar,
+			freeChatItem,
+			freePopup,
+			freeButton,
+			freeConfirm
+		},
+		mixins: [auth, mixins],
+		data() {
+			return {
+				loadingtext: '上拉加载更多记录',
+				page: 1,
+				sendcontent: '',
+				statusbarheight: 0,
+				// 键盘高度
+				// 模式
+				mode: 'text',
+				sendcontent: '',
+				inputbottom: 0,
+				transformOrigin: "left top",
+				navheight: 0,
+				popupindex: -1,
+				extendsmenu: [{
+						name: '复制',
+						event: '',
+						icon: '\ue63f'
+					},
+					{
+						name: '发送给朋友',
+						event: 'sendtofriend',
+						icon: '\ue61f'
+					},
+					{
+						name: '收藏',
+						event: '',
+						icon: '\ue62d'
+					},
+					{
+						name: '删除',
+						event: 'delChatDetail',
+						icon: '\ue60c',
+					},
+					{
+						name: '多选',
+						event: '',
+						icon: '\ue678'
+					},
+					{
+						name: '撤回',
+						event: 'recall',
+						icon: '\ue678'
+					},
+				],
+				list: [],
+				actionList: [
+					[{
+							name: '相册',
+							icon: '/static/images/extends/pic.png',
+							event: 'uploadimage'
+						},
+						{
+							name: '拍摄',
+							icon: '/static/images/extends/video.png',
+							event: 'camera'
+						},
+						{
+							name: '视频通话',
+							icon: '/static/images/extends/phone.png',
+							event: 'phone'
+						},
+						{
+							name: '位置',
+							icon: '/static/images/extends/path.png',
+							event: 'location'
+						},
+						{
+							name: '红包',
+							icon: '/static/images/extends/hongbao.png',
+							event: 'hongbao'
+						},
+						{
+							name: '名片',
+							icon: '/static/images/extends/man.png',
+							event: 'card'
+						},
+						{
+							name: '语音输入',
+							icon: '/static/images/extends/audio.png',
+							event: 'audio'
+						},
+						{
+							name: '收藏',
+							icon: '/static/images/extends/shoucan.png',
+							event: 'collection'
+						}
+					]
+				],
+				emoticonList: [
+					[]
+				],
+				// 录音部分参数
+				isrecording: false,
+				// 是否取消录音
+				unrecord: false,
+				RECORDINGTIMER: null,
+				RECORDINGTIME: 0,
+				detail: {
+					avatar: '',
+					chat_type: '',
+					data: '',
+					id: 0,
+					istop: 0,
+					noreadnum: 0,
+					nowarn: 0,
+					shownickname: 0,
+					strongwarn: 0,
+					type: '',
+					update_time: '',
+					username: '',
+				},
+				carddetail: {
+					data: '', //图片
+					options: {
+						username: '',
+						user_id: '',
+						name: ''
+					}
+				}
+			}
+		},
+		watch: {
+			// 如果拓展菜单的模式为action或者emoticon时就不关闭
+			mode(newValue, oldValue) {
+				if (newValue !== 'action' && newValue !== 'emoticon') {
+					this.$refs.action.hide();
+				}
+			}
+		},
+		onShow() {
+			if(this.chat.TO)return;
+			this.chat.createObject(this.detail)
+		},
+		onLoad(e) {
+			if (!e.params) {
+				return this.backToast()
+			}
+			let detail = e.params
+			detail = JSON.parse(decodeURIComponent(detail))
+			this.detail=detail;
+			// 创建聊天对象
+			let obj = this.chat.createObject(detail)
+			let list = this.chat.loadMoreChat();
+			if (list.length < 10) this.loadingtext = '已全部加载'
+			this.list = list
+			uni.$on('handlemessage', (message) => {
+				if ((message.to_id == this.user.id && message.from_id == this.chat.TO.id && message.chat_type ==
+						'user') || (message.from_id == this.user.id && message.to_id == this.chat.TO.id) || (
+						message.to_id == this.chat.TO.id && message.chat_type == 'group')) {
+					this.list.push(message)
+					setTimeout(() => {
+						this.tobottom()
+					}, 200)
+				}
+			})
+			uni.$on('onhandlerecall', message => {
+				if ((message.id == this.user.id && message.from_id == this.chat.TO.id && message.chat_type ==
+						'user') || (message.id == this.chat.TO.id && message.chat_type == 'group')) {
+					let index = this.list.findIndex(v => {
+						return v.id == message.message_id && v.chat_type == message.chat_type
+					})
+					console.log(index);
+					if (index !== -1) {
+						this.list[index].isremove = 1
+					}
+					setTimeout(() => {
+						this.tobottom()
+					}, 200)
+				}
+			})
+			// 消息撤回渲染处理
+			uni.$on('clearhistory', () => {
+				this.list = []
+			})
+			uni.$on('handlecardmessage', this.handlescardmessage)
+			// 查找历史记录
+			// 销毁聊天对象
+
+		},
+		onPullDownRefresh() {
+			if (this.loadingtext !== '上拉加载更多记录') return uni.stopPullDownRefresh();
+			this.page++;
+			let list = this.chat.loadMoreChat(this.page);
+			uni.stopPullDownRefresh();
+			setTimeout(() => {
+				this.list.unshift(...list)
+			}, 100)
+			if (list.length < 10) {
+				return this.loadingtext = '已全部加载'
+			}
+		},
+		destroyed() {
+			// uni.$off('handlemessage')
+			this.chat.destroyObject();
+			uni.$off('clearhistory')
+			uni.$off('handlecardmessage', this.handlescardmessage)
+		},
+		computed: {
+			...mapState({
+				chat: state => state.user.chat,
+				user: state => state.user.user,
+				allnoreadnum: state => state.user.allnoreadnum
+			}),
+			chaturls() {
+				let urls = [];
+				this.list.forEach(v => {
+					if (v.type == 'emoticon' || v.type == "image") {
+						urls.push(v.data)
+					}
+				})
+				return urls
+
+			},
+			// 获取弹出框内容列表
+			getActionOrEmoticonList() {
+				return this.mode === 'emoticon' || this.mode === 'action' ? this[`${this.mode}List`] : []
+			},
+			// 获取选项高度
+			getmenuheight() {
+				return this.extendsmenu.length > 0 ? 105 * this.extendsmenu.length : 0
+			},
+			getnavstyle() {
+				return `height:${this.navheight}px`
+			},
+			// 计算输入框长度是否显示发送按钮
+			issend() {
+				return this.sendcontent.length === 0
+			},
+			// 计算是否是本人
+
+			// 聊天内容的高度
+			chatbodybottom() {
+				return this.inputbottom + uni.upx2px(105);
+			},
+			// 遮盖层的底部高度
+			getcoverbottom() {
+				return this.inputbottom + uni.upx2px(105)
+			},
+			// 获取菜单
+
+		},
+		mounted() {
+			this.mode = 'text'
+			// 获取状态栏高度
+			// #ifdef APP-NVUE
+			this.statusbarheight = plus.navigator.getStatusbarHeight()
+			this.navheight = this.statusbarheight + uni.upx2px(90)
+			// #endif
+			uni.onKeyboardHeightChange(res => {
+				if (this.mode === 'text') {
+					this.inputbottom = res.height
+				}
+				this.tobottom()
+			})
+			// 监听录音开始
+			RECORD.onStart(() => {
+				this.RECORDINGTIME = 0;
+				this.RECORDINGTIMER = setInterval(() => {
+					this.RECORDINGTIME++
+				}, 1000)
+			})
+			// 监听录音结束
+			RECORD.onStop((url) => {
+				if (this.RECORDINGTIME <= 1) {
+					this.unrecord = true;
+				}
+				if (this.RECORDINGTIMER) {
+					clearInterval(this.RECORDINGTIMER)
+					this.RECORDINGTIMER = null;
+				}
+				if (!this.unrecord) {
+					let {
+						tempFilePath
+					} = url;
+					this.send('audio', tempFilePath, {
+						time: this.RECORDINGTIME
+					})
+					this.RECORDINGTIME = 0;
+				} else {
+					uni.showToast({
+						icon: 'none',
+						title: '录音过短或被打断',
+					})
+					this.RECORDINGTIME = 0;
+				}
+			})
+		},
+		created() {
+			this.initemoticon()
+		},
+		methods: {
+			// 卡片处理
+			handlescardmessage(card) {
+				let item = card[0]
+				this.carddetail.data = item.avatar || '/static/images/demo/demo5.jpg';
+				this.carddetail.options = {
+					name: item.name,
+					user_id: item.user_id,
+					username: item.username
+				}
+				this.$refs['confirm'].open((close) => {
+					this.send('card', this.carddetail.data, this.carddetail.options)
+					close()
+				})
+			},
+			...mapActions(['$on']),
+			preview(url) {
+				uni.previewImage({
+					current: url,
+					urls: this.chaturls
+				});
+			},
+			initemoticon() {
+				var total = 20;
+				var page = Math.ceil(total / 8)
+				let arr = []
+				for (let i = 0; i < page; i++) {
+					arr[i] = []
+					var startindex = i * 8
+					for (let j = 0; j < 8; j++) {
+						var index = startindex + j
+						if (index > 19) {
+							continue;
+						}
+						arr[i].push({
+							name: `表情${index}`,
+							icon: `/static/images/emoticon/5497/${index}.gif`,
+							event: 'sendemoticon'
+						}, )
+					}
+				}
+				this.emoticonList = arr;
+			},
+			hideactiondefault() {
+				uni.hideKeyboard()
+				this.hideaction()
+				this.$refs.action.hide();
+				this.mode = ''
+			},
+			onfocus() {
+				this.mode = 'text'
+				// this.$refs.action.hide();
+			},
+
+			// 跳转到聊天设置页面
+			toset() {
+				uni.navigateTo({
+					url: "chat_set"
+				})
+				uni.navigateTo({
+					url: "chat/chat_set?params=" + encodeURIComponent(JSON.stringify({
+						id: this.chat.TO.id, //好友id
+						chat_type: this.chat.TO.chat_type
+					}))
+				})
+			},
+			// 打开拓展菜单
+			openActionOrEmoticon(mode = 'action') {
+				this.tobottom()
+				this.mode = mode;
+				uni.hideKeyboard()
+				this.$refs.action.show();
+				this.inputbottom = uni.upx2px(580);
+			},
+			// 点击拓展菜单选项
+			actionevent(item) {
+				switch (item.event) {
+					case 'sendemoticon':
+						this.send('emoticon', item.icon)
+						break;
+					case 'uploadimage':
+						uni.chooseImage({
+							count: 5,
+							success: (res) => {
+								let tempFilePaths = res.tempFilePaths;
+								tempFilePaths.forEach(v => {
+									this.send('image', v)
+								})
+							}
+						})
+						break;
+					case 'camera':
+						uni.chooseVideo({
+							maxDuration: 10,
+							count: 1,
+							success: (res) => {
+								let url = res.tempFilePath;
+								// 渲染页面
+								this.send('video', url)
+								// 发送到服务端
+								// 修改发送状态
+
+							}
+						})
+						break;
+					case 'card':
+						this.tocard()
+						break;
+
+				}
+			},
+			hideaction() {
+				// console.log(123);
+				this.inputbottom = 0
+			},
+			// 长按消息气泡
+			longtouch({
+				left,
+				top,
+				index
+			}) {
+				if (this.list[index].isremove) return;
+				this.popupindex = index;
+				let item = this.list[this.popupindex]
+				let isself = item.from_id == this.user.id;
+				this.extendsmenu.filter(v => {
+					if (v.name == '撤回' && !isself) {
+						return false;
+					}
+					return true;
+				})
+				this.transformOrigin = left < uni.upx2px(375) ? "left top" : 'right top'
+				this.$refs.popup.show(left, top)
+			},
+			clickevent(e, item) {
+				switch (e) {
+					// 撤回
+					case 'recall':
+						this.recall(this.list[this.popupindex]);
+						break;
+					case 'uploadimage':
+						break;
+					case 'sendtofriend':
+						this.sendtofriend(this.list[this.popupindex]);
+						break;
+					case 'delChatDetail':
+						this.delChatDetail(this.list[this.popupindex])
+				}
+				this.$refs.popup.hide()
+			},
+			// 删除指定的聊天记录
+			delChatDetail(item) {
+				// 先删除本地存储
+				this.chat.deleteChatDetailItem(item)
+				let index = this.list.findIndex(v => v.id == item.id && v.chat_type == item.chat_type && v.type == item
+					.type)
+				this.list.splice(index, 1)
+				if (index == -1) return;
+				let lastitem = this.list.length > 1 ? this.list[index - 1] : {}
+				console.log(index, this.list.length)
+				if (index == this.list.length) {
+					this.chat.updateChatItem({
+						id: this.chat.TO.id,
+						chat_type: this.chat.TO.chat_type
+					}, (lastdata) => {
+						lastdata.data = index == 1 ? '' :  this.chat.handlemessagetype(lastitem) 
+						return lastdata
+					})
+				}
+				// 再删除已渲染的list中的记录
+				// 修改index页面的最后一条数据
+			},
+			// 跳转到好友列表页面
+			sendtofriend(item) {
+				uni.navigateTo({
+					url: "../mail/user_recommand/user_recommand?params=" + encodeURIComponent(JSON.stringify({
+						type: item.type,
+						data: item.data,
+						options: item.options
+					}))
+				})
+			},
+			// 跳转到名片页
+			tocard() {
+				uni.navigateTo({
+					url: "../mail/mail/mail_connector?type=card&limit=1"
+				})
+			},
+			// 撤回消息
+			recall() {
+				let item = this.list[this.popupindex];
+				console.log(item);
+				this.chat.recall({
+					id: this.chat.TO.id,
+					message_id: item.id,
+					chat_type: item.chat_type
+				}).then(res => {
+					console.log(res);
+					let index = this.list.findIndex(v => {
+						return v.id == res.message_id && v.chat_type == res.chat_type
+					})
+					if (index !== -1) {
+						this.list[index].isremove = 1
+					}
+				})
+			},
+			changemode() {
+				this.mode = this.mode !== 'audio' ? 'audio' : 'text';
+				if (this.mode === 'audio') {
+					uni.hideKeyboard()
+					this.$nextTick(() => {
+						this.inputbottom = 0;
+					})
+				}
+			},
+			tobottom() {
+				let chatitems = this.$refs.chatitem;
+				if (chatitems) {
+					let lastindex = chatitems.length > 0 ? chatitems.length - 1 : 0;
+					let lastitem = chatitems[lastindex]
+					if (lastitem) {
+						dom.scrollToElement(lastitem, {})
+					}
+				}
+			},
+			async send(type, data = '', options = {}) {
+				let index = this.list.length
+				switch (type) {
+					case 'text':
+						data = this.sendcontent
+						break;
+				}
+				let messagedata = this.chat.formatMessagedata({
+					type,
+					data,
+					options,
+				})
+				this.list = [...this.list, messagedata]
+				this.chat.send(messagedata).then((res) => {
+					// this.list.push(messagedata)
+					this.list[index].id = res.id
+					this.list[index].sendStatus = 'success'
+
+				}).catch(err => {
+					console.log(err);
+					this.list[index].sendStatus = 'fail'
+				})
+				this.sendcontent = ''
+				setTimeout(() => {
+					this.tobottom();
+				}, 100)
+			},
+			// 重新发送消息
+			resend(item) {
+				let index = this.list.findIndex(v => {
+					return v.created_time == item.created_time
+				})
+				// console.log(item);
+				let messagedata = this.chat.formatMessagedata({
+					type: item.type,
+					data: item.data,
+					options: item.options
+				})
+				console.log(item);
+				this.chat.send({
+					...messagedata,
+					k: item.k
+				}, true, item.k).then((res) => {
+					// this.list.push(messagedata)
+					this.list[index].id = res.id
+					this.list[index].sendStatus = 'success'
+
+				}).catch(err => {
+					console.log(err);
+					this.list[index].sendStatus = 'fail'
+				})
+			},
+			// 录音部分
+			audiotouchstart(e) {
+				this.isrecording = true;
+				RECORD.start({
+					format: 'mp3'
+				})
+				this.recordingY = e.changedTouches[0].screenY
+			},
+			audiotouchend(e) {
+				RECORD.stop()
+				this.isrecording = false;
+			},
+			audiotouchmove(e) {
+
+				let Y = Math.abs(e.changedTouches[0].screenY - this.recordingY)
+				this.unrecord = Y > 80
+			},
+			audiotouchcancel() {
+				this.unrecord = true;
+				this.isrecording = false;
+			},
+			touser(item) {
+				uni.navigateTo({
+					url: '../mail/user_base/user_base?user_id=' + item.options.user_id,
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

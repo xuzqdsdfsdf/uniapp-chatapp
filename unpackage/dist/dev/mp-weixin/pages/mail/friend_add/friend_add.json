@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "",
+  "usingComponents": {
+    "free-navbar": "/components/free-ui/free-navbar",
+    "free-button": "/components/free-ui/free-button",
+    "free-form-item": "/components/free-ui/free-form-item",
+    "free-list-item": "/components/free-ui/free-list-item"
+  }
+}

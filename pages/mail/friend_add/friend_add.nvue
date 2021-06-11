@@ -1,0 +1,115 @@
+<template>
+	<view>
+		<free-navbar title="申请添加好友" isshowback :showsearch="false">
+			<free-button @click="addnewfriend" slot="options" :disabled="false" content="发送"></free-button>
+		</free-navbar>
+		<view class="p-4 m-2">
+			<free-form-item title="设置备注">
+				<input placeholder="设置备注" v-model="form.nickname" class="border text-dark top-nav-bgc p-2" style="height: 70px;" />
+			</free-form-item>
+			<free-form-item title="设置朋友圈和状态">
+				<view class="">
+					<free-list-item :isshowdefaultcolor="false" :icon="false" text="让他(她)看">
+						<switch  :checked="form.lookme" slot="rightcontent" color="#08C060" @change="changevalue($event,'lookme')"></switch>
+					</free-list-item>
+					<free-list-item :isshowdefaultcolor="false" :icon="false" text="看他(她)">
+						<switch :checked="form.lookhim"  slot="rightcontent" color="#08C060" @change="changevalue($event,'lookhim')"></switch>
+					</free-list-item>
+				</view>
+			</free-form-item>
+		</view>
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import $H from '@/common/free-lib/request.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeFormItem from '@/components/free-ui/free-form-item.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import {mapActions} from 'vuex'
+	export default {
+		mixins:[auth],
+		components: {
+			freeNavbar,
+			freeButton,
+			freeFormItem,
+			freeListItem
+		},
+		onLoad(e) {
+			if(!e.user_id)
+			{
+				return this.backToast()
+			}
+			this.type=e.type
+			this.user_id = e.user_id
+		},
+		data() {
+			return {
+				form: {
+					nickname:'',
+					lookme:1,
+					lookhim:1
+				},
+				type:'add_friend'
+			}
+		},
+		methods:{
+			...mapActions(['getapplycount']),
+			addnewfriend()
+			{
+				// 添加好友
+				if(this.type==='add_friend')
+				{
+				  return $H.post('/apply/addFriend',{...this.form,friend_id:this.user_id}).then(res=>{
+						uni.showToast({
+							title:'等待对方处理',
+							icon:'none'
+						})
+						if(typeof(res) ==='object')	
+						{
+							uni.showToast({
+								title:'等待对方处理',
+								icon:'none'
+							})
+							let timer = setTimeout(()=>{
+								uni.navigateBack({
+									delta:1
+								},500)
+								clearTimeout(timer)
+							})
+						}
+						uni.showToast({
+							title:res,
+							icon:'none'
+						})
+						
+					})
+				}
+				// 处理好友申请
+				$H.post(`/apply/handleapply/${this.user_id}`,{...this.form,status:'agree'}).then((res)=>{
+					console.log(res);
+					setTimeout(()=>{
+						uni.showToast({
+							title:res,
+							icon:'none'
+						})
+					},500)
+					this.getapplycount();
+					uni.navigateBack({
+						delta:1
+					})
+				})
+			},
+			changevalue(value,event)
+			{
+				this.form[event]=value.detail.value?1:0
+			}
+		}
+	}
+</script>
+
+<style>
+
+</style>

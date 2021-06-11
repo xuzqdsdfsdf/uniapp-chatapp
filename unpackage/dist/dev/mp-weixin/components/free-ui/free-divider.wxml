@@ -1,0 +1,1 @@
+<view class="flex align-center" style="{{'background-color:#ededed;'+(getstyle)}}"><slot name="divider"></slot></view>

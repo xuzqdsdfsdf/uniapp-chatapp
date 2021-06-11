@@ -1,0 +1,44 @@
+<template>
+	<view class="position-relative"> 
+		<video :style="'width:750upx;height:'+windowHeight+'px'" :src="videourl" autoplay @ended="back"></video>
+		<view class="position-absolute flex align-center justify-center " style="top:40upx;left:40upx;width: 80upx;height: 80upx;">
+			<text class="iconfont text-white" style="font-size: 50upx;width: 50upx;height: 50upx;" @click="back">&#xe601;</text>
+		</view>
+	</view> 
+</template>
+
+<script>
+	export default {
+		data() {
+			return { 
+				videourl: '',
+				windowHeight: 500
+			}
+		},
+		onLoad(e) {
+			if (!e.url) {
+				this.back()
+				return uni.showToast({
+					title: '非法视频',
+					icon: 'none'
+				})
+			}
+			this.videourl = e.url;
+			uni.getSystemInfo({
+				success: (res) => {
+					this.windowHeight = res.windowHeight
+				}
+			})
+		},
+		methods: {
+			back() {
+				uni.navigateBack({
+					delta: 1
+				})
+			}
+		}
+	}
+</script>
+
+<style>
+</style>

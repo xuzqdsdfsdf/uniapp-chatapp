@@ -1,0 +1,138 @@
+<template>
+	<view>
+		<free-navbar title="谁可以看" :showsearch="false" isshowback >
+			<free-button slot="options" content="完成" @click="choosesee" :disabled="false"></free-button>
+		</free-navbar>
+		<view class="">
+			<view class="flex align-center" v-for="(item,index) in options" @click="select(item,index)" :key="index">
+				<view  slot="rightcontent"
+					class="rounded-circle ml-2  border  flex align-center justify-center"
+					style="width: 45rpx;height: 45rpx;padding: 0">
+					<view v-if="current_index == index" class="main-bg-color rounded-circle"
+						style="width: 37rpx;height: 37rpx;">
+					</view>
+				</view>
+				<free-list-item :isshowborder="false" :rightarea="false" itemborder>
+					<view  slot="icon">
+						<text class="p-1 font-md">{{item.name}}</text>
+						<text class="p-1 font-sm text-muted">{{item.desc}}</text>
+					</view>
+					<view class=" flex mr flex-1 align-center justify-center" slot="content" v-if="current_index == index">
+						<text class="font-sm text-light-muted p-1" >{{Listname}}</text>
+						<text class="font-sm text-light-muted p-1" v-if="selectedList.length">{{iscansee}}</text>
+					</view>
+				</free-list-item>
+			</view>
+		</view>
+	</view>
+</template> 
+
+<script>
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		components: {
+			freeNavbar,
+			freeButton,
+			freeListItem
+		},
+		data() {
+			return {
+				options: [
+					{
+						name:'公开',
+						desc:'所有朋友可见',
+						key:'all',
+						isselected:false
+					},
+					{
+						name:'私密',
+						desc:'仅自己可见',
+						key:'none',
+						isselected:false
+					},
+					{
+						name:'部分可见',
+						desc:'选中的朋友可以查看',
+						key:'only',
+						isselected:false,
+						event:'selecteonly'
+					},
+					{
+						name:'不给谁看',
+						desc:'选中的好友不能查看',
+						key:'except',
+						isselected:false,
+						event:'selectetexcept'
+					}
+				],
+				current_index:0,
+				selectedList:[]
+			}
+		},
+		computed:{
+			iscansee()
+			{
+				return this.options[this.current_index].key == 'only'?'可见':'不可见'
+			},
+			Listname()
+			{
+				if(this.selectedList.length==0)return;
+				let data = this.selectedList==1 ? this.selectedList[0].name:this.selectedList.map(v=>v.name).join('、');
+				return data.length>10?data.substring(0,9)+'...':data
+			}
+		},
+		onLoad(e) {
+			let params = JSON.parse(e.params);
+			let index = this.options.findIndex(v=>v.key == params.key)
+			this.current_index = index == -1 ? 0 :index
+			this.selectedList = params.selectedList
+			uni.$on('handleOnsee',this.handleOnsee)
+		},
+		destroyed() {
+		    uni.$off('handleOnsee',this.handleOnsee)
+		},
+		methods: {
+			select(item,index) {
+				if(index!==this.current_index)this.selectedList=[] 
+				this.current_index = index;
+				if(item.event)
+				{
+					this.selectsee(item.key)
+				}
+			},
+			selectsee(key)
+			{
+				uni.navigateTo({
+					url:`../../mail/mail/mail_connector?type=${key}&params=${JSON.stringify({
+						selectedList:this.selectedList
+					})}`
+				})
+			},
+			handleOnsee(data)
+			{
+				if(data.type=='only'||data.type == 'except')
+				{
+					this.selectedList = data.seelist
+				}
+			},
+			choosesee()
+			{
+				let key = this.options[this.current_index].key
+				if((key == 'only' || key == 'except')&&this.selectedList.length==0)return uni.showToast({
+					title:'您还未选择列表',
+					icon:'none'
+				})
+				uni.$emit('handleResult',{data:this.selectedList,key})
+				uni.navigateBack({
+					delta:1
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

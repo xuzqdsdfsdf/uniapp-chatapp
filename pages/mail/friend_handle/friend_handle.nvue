@@ -1,0 +1,110 @@
+<template>
+	<view>
+		<free-navbar title="新的朋友" isshowback :showsearch="false">
+			<free-button @click="addnewfriend" slot="options" :disabled="false" content="更多好友"></free-button>
+		</free-navbar>
+		<view class="">
+			<free-list-item v-for="(item,index) in list" :key="index"
+				:src="item.user.avatar?item.user.avatar:'/static/images/userpic.png'">
+				<text slot="content"
+					class="flex-1 flex align-center py-4  font-md ">{{item.nickname?item.nickname:item.user.username}}</text>
+				<view slot="rightcontent" class="flex ml-auto" v-if="item.status=='pending'">
+					<free-button :disabled="false" content="同意" @click="confirmadd(item.id,'agree')"></free-button>
+					<free-button content="拒绝"></free-button>
+				</view>
+				<view slot="rightcontent" class="flex ml-auto" v-else>
+					<free-button :content="item.status==='agree'?'已同意':'已拒绝'"></free-button>
+				</view>
+			</free-list-item>
+		</view>
+		<view class="flex align-center justify-center">
+			<text class="text-muted font p-4">{{loadingtext}}</text>
+		</view>
+	</view>
+</template>
+
+<script>
+	import {
+		mapState,
+		mapActions
+	} from 'vuex'
+	import auth from '@/common/mixins/auth.js'
+	import $H from '@/common/free-lib/request.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeFormItem from '@/components/free-ui/free-form-item.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		mixins: [auth],
+		components: {
+			freeNavbar,
+			freeButton,
+			freeFormItem,
+			freeListItem
+		},
+		computed: {
+			...mapState({
+				list: (state) => state.user.apply.list
+			})
+		},
+		onLoad(e) {
+			if(this.list.length<10)this.loadingtext='没有更多'
+		},
+		onShow() {
+			if(this.list.length<10)this.loadingtext='没有更多'
+			this.page=1;
+		},
+		data() {
+			return {
+				loadingtext: '上拉加载更多', //加载中，没有更多
+				page:1
+			}
+		},
+		onPullDownRefresh() {
+			this.page = 1;
+			this.getapplycount().then(res => {
+				uni.showToast({
+					title: '加载完成',
+					icon: 'none'
+				})
+				uni.stopPullDownRefresh()
+				if(this.list.length<10)return this.loadingtext='没有更多'
+				this.loadingtext='上拉加载更多'
+			})
+		},
+		// 下拉加载
+		onReachBottom() {
+			if (this.loadingtext !== '上拉加载更多') return;
+			this.page = this.page + 1;
+			this.loadingtext = '加载中'
+			this.getapplycount(this.page).then(res => {
+				uni.stopPullDownRefresh()
+				if (this.page * 10 === this.list.length) {
+					return this.loadingtext = '上拉加载更多'
+				} else {
+					this.page = this.page - 1;
+					this.loadingtext = '没有更多'
+				}
+			})
+	},
+	methods: {
+		confirmadd(id, status) {
+			uni.navigateTo({
+				url:`../friend_add/friend_add?type=handle_friend&user_id=${id}`
+			})
+			console.log(id);
+		},
+		addnewfriend()
+		{
+			uni.navigateTo({
+				url:'../../common/search/search'
+			})
+		},
+		...mapActions(['getapplycount'])
+	}
+	}
+</script>
+
+<style>
+
+</style>

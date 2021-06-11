@@ -1,0 +1,85 @@
+<template>
+	<view class="page">
+		<free-navbar title="发现" :networkerr="!chat.isonline" transformOrigin="right top"  :isshowdefaultcolor="true"></free-navbar>
+		<view class="">
+			<free-list-item text="朋友圈"  showarray @click="tourl('friend_moment')">
+				<text slot="icon" style="color: #6669E6;" class="iconfont font-md">&#xe612;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="视频号" showarray >
+				<view slot="rightcontent" class="position-relative flex align-center">
+					<image src="/static/images/userpic.png" style="width: 70upx;height: 70upx;" mode="widthFix"></image>
+					<text class="position-absolute right-0 top-0 bg-danger rounded-circle " style="width: 20upx;height: 20upx;" ></text>
+				</view>
+				<text slot="icon" style="color: #EF9F4E;" class="iconfont font-lg ">&#xe6de;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="扫一扫" showarray>
+				<text slot="icon" style="color: #2780D6;" class="iconfont font-lg ">&#xe61e;</text>
+			</free-list-item>
+			<free-list-item text="摇一摇" showarray>
+				<text slot="icon" style="color: #2780D6;" class="iconfont font-lg ">&#xe6aa;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="看一看" showarray>
+				<text slot="icon" style="color: #F7C21E;" class="iconfont font-lg ">&#xe60b;</text>
+			</free-list-item>
+			<free-list-item text="搜一搜" showarray>
+				<text slot="icon" style="color: #FA5251;" class="iconfont font-lg ">&#xe611;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="附近的人" showarray>
+				<text slot="icon" style="color: #2780D6;" class="iconfont font-lg ">&#xe646;</text>
+			</free-list-item>
+			<free-divider :dividerheight="20"></free-divider>
+			<free-list-item text="购物" showarray>
+				<text slot="icon" style="color: #FA5251;" class="iconfont font-lg ">&#xe68c;</text>
+			</free-list-item>
+  			<free-divider :dividerheight="20"></free-divider>
+			<view style="height: 200rpx;"></view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import auth from '@/common/mixins/auth.js'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import mixins from '@/common/mixins/mixins.js'
+	import {mapState} from 'vuex'
+	export default {
+		components: {
+			freeNavbar,
+			freeListItem,
+			freeDivider
+		},
+		computed: {
+			...mapState({
+				chat:(state)=>state.user.chat
+			})
+		},
+		mixins:[auth,mixins],
+		data() {
+			return {
+				
+			}
+		},
+		methods: {
+			tourl(url) {
+				this.readmoment()
+				uni.navigateTo({
+					url:`../../find/${url}/${url}`
+				})
+			},
+			readmoment()
+			{
+				this.chat.Readmomentremind()
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

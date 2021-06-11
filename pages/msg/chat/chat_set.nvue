@@ -1,0 +1,365 @@
+<template>
+	<view class="page">
+		<!-- 头部 -->
+		<free-navbar title="聊天记录" isshowback isshowdefaultcolor :showsearch="false"></free-navbar>
+		<view class="flex flex-wrap flex-row bg-white ">
+			<!-- 单聊 -->
+			<view v-if="detail.chat_type == 'user'" class="flex flex-column px-2 my-3 justify-center align-center "
+				style="width: 150rpx;">
+				<image class="rounded" :src="detail.avatar ? detail.avatar:'/static/images/demo/demo5.jpg'"
+					style="width: 100rpx;height: 100rpx;" mode=""></image>
+				<text class="font-sm mt-2 text-light-muted text-ellipsis text-center"
+					style="max-width: 150rpx;">{{detail.name||detail.username}}</text>
+			</view>
+			<!-- 群聊 -->
+			<template v-if="detail.chat_type == 'group'">
+				<view class="flex flex-column px-2 my-3 justify-center align-center " style="width: 150rpx;"
+					v-for="(item,i) in list" :key="i">
+					<image class="rounded-circle" :src="item.avatar" style="width: 100rpx;height: 100rpx;" mode="">
+					</image>
+					<view class="text-ellipsis" style="width: 120rpx;height: 50rpx;">
+						<text class="font-sm mt-2 text-light-muted">{{item.nickname}}</text>
+					</view>
+				</view>
+				<view v-if="detail.user_id == user.id" @click="kickoutuser('addgroup')"
+					class="flex   my-3 justify-center align-center  "
+					style="width: 150rpx;height: 150rpx; border-style: dashed;">
+					<view class="flex  justify-center align-center border px-2 ">
+						<text style="font-size: 80rpx;" class="text-light-muted">+</text>
+					</view>
+				</view>
+				<view v-if="detail.user_id == user.id" @click="kickoutuser('kickoutuser')"
+					class="flex   my-3 justify-center align-center  "
+					style="width: 150rpx;height: 150rpx; border-style: dashed;">
+					<view class="flex  justify-center align-center border px-2 ">
+						<text style="font-size: 80rpx;" class="text-light-muted">—</text>
+					</view>
+				</view>
+			</template>
+		</view>
+		<free-divider dividerheight="20"></free-divider>
+		<view>
+			<template v-if="detail.chat_type=='group'">
+				<free-list-item text="群聊名称" @click="rename" :icon="false" showarray>
+					<text slot="rightcontent" class="font-sm  text-ellipsis text-muted ">{{name}}</text>
+				</free-list-item>
+				<free-list-item text="群二维码" @click="tocode" :icon="false" showarray />
+				<free-list-item text="群公告" @click="toremark" :icon="false" showarray />
+				<free-list-item text="备注" :icon="false" showarray></free-list-item>
+			</template>
+			<free-divider dividerheight="20"></free-divider>
+			<free-list-item text="查找聊天记录" :icon="false" showarray></free-list-item>
+			<free-divider dividerheight="20"></free-divider>
+			<free-list-item text="消息免打扰" :icon="false">
+				<switch @change="updatestatus('nowarn',$event.detail.value)" :checked="detail.nowarn"
+					slot="rightcontent" style="transform:scale(0.9);" class="mr-2" color="#04C160"></switch>
+			</free-list-item>
+			<free-list-item text="置顶聊天" :icon="false">
+				<switch @change="updatestatus('istop',$event.detail.value)" :checked="detail.istop" slot="rightcontent"
+					style="transform:scale(0.9);" class="mr-2" color="#04C160"></switch>
+			</free-list-item>
+			<free-divider dividerheight="20"></free-divider>
+			<template v-if="detail.chat_type=='group'">
+				<free-list-item text="我在群里的昵称" :icon="false" @click="updatenickname" showarray>
+					<text slot="rightcontent" class="font-sm text-muted ">{{mynickname}}</text>
+				</free-list-item>
+				<free-list-item text="显示群成员的昵称" :icon="false">
+					<switch :checked="detail.shownickname" @change="updatestatus('shownickname',$event.detail.value)"
+						slot="rightcontent" style="transform:scale(0.9);" class="mr-2" color="#04C160"></switch>
+				</free-list-item>
+			</template>
+			<free-divider dividerheight="20"></free-divider>
+			<free-list-item text="设置当前聊天背景" :icon="false" showarray>
+			</free-list-item>
+			<free-list-item text="投诉" :icon="false" showarray>
+			</free-list-item>
+			<free-divider dividerheight="20"></free-divider>
+			<free-list-item text="清空聊天记录" :icon="false" @click="clearhistory" showarray></free-list-item>
+			<free-divider dividerheight="20"></free-divider>
+			<view class="flex align-center justify-center py-4 bg-white" @click="quitgroup">
+				<text class="font-md" style="color: #F75352;">{{quittext}}</text>
+			</view>
+		</view>
+		<free-confirm ref="confirm" title="群名称修改" :confirmH="300" :confirmW="550">
+			<view class="" slot="content">
+				<input type="text" class="border-bottom border-dark font m-1 p-1" placeholder="群名称"
+					v-model="renamevalue" />
+			</view>
+		</free-confirm>
+		<view style="height: 200rpx;"></view>
+		<free-confirm ref="mynickname" title="我的群昵称" :confirmH="300" :confirmW="550">
+			<view class="" slot="content">
+				<input type="text" class="border-bottom border-dark font m-1 p-1" placeholder="我的群昵称"
+					v-model="newnickname" />
+			</view>
+		</free-confirm>
+		<view style="height: 200rpx;"></view>
+	</view>
+</template>
+
+<script>
+	import freeConfirm from '@/components/free-ui/free-confirm.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeDivider from '@/components/free-ui/free-divider.vue'
+	import auth from '@/common/mixins/auth.js'
+	import {
+		mapState
+	} from 'vuex'
+	import $H from '@/common/free-lib/request.js'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	import config from '@/common/free-lib/config.js'
+	export default {
+		mixins: [auth],
+		components: {
+			freeNavbar,
+			freeDivider,
+			freeListItem,
+			freeConfirm
+		},
+		computed: {
+			...mapState({
+				user: state => state.user.user,
+				chat: state => state.user.chat
+			}),
+			mynickname() {
+				let index = this.list.findIndex(v => v.id == this.user.id)
+				return index > -1 ? this.list[index].nickname : ''
+			},
+			quittext() {
+				return this.detail.chat_type == 'group' ? '退出/解散群聊' : '删除好友'
+			},
+
+		},
+		data() {
+			return {
+				renamevalue: '',
+				list: [], //群相关资料
+				detail: {
+					id: 0,
+					chat_type: 'user', //聊天类型
+					avatar: '', //群头像
+					name: '', //好友name
+					istop: false, //是否置顶
+					shownickname: false, //是否显示昵称
+					strongwarn: false, //是否抢提醒
+					nowarn: false, //是否屏蔽免打扰
+					user_id: 0, //管理员id
+					remark: '', //备注
+					invite_confirm: 0, //邀请确认
+				},
+				name: '',
+				newnickname: ''
+			}
+		},
+		destroyed() {
+			uni.$off('updateremark')
+			uni.$off('kickout', this.onhandlekickout)
+		},
+		onShow() {
+			uni.$on('updateremark', remark => {
+				this.detail.remark = remark
+				this.$set(this.detail, 'remark', remark)
+			})
+			if(this.detail.id && this.detail.chat_type=='group')
+			{
+				this.getdetail()
+			}
+		},
+		onLoad(e) {
+			if (!e.params) {
+				return this.backToast()
+			}
+			let detail = e.params
+			detail = JSON.parse(decodeURIComponent(detail))
+			let item = this.chat.getChatListDetail(detail.id, detail.chat_type)
+			this.detail = item;
+			this.name = item.name
+			console.log(this.detail);
+			if (this.detail.chat_type == 'group') this.getdetail()
+			uni.$on('kickout', this.onhandlekickout);
+			uni.$on('handlegroupadd',this.handlegroupadd)
+		},
+		methods: {
+			// 添加成员后刷新页面
+			async handlegroupadd()
+			{
+				this.getdetail()
+			},
+			// 渲染踢出成员后的列表
+			onhandlekickout(id) {
+				let index = this.list.findIndex(v => v.id == id);
+				if (index != -1) {
+					this.list.splice(index, 1)
+				}
+			},
+			// 踢出群成员
+			kickoutuser(type) {
+				if (type == 'kickoutuser') {
+					return uni.navigateTo({
+						url: `../group/group_kickout?params=${JSON.stringify({
+						list:this.list
+					})}&group_id=${this.detail.id}&type=${type}`
+					})
+				}
+				uni.navigateTo({
+					url:`../../mail/mail/mail_connector?type=add_group_user&limit=1&group_id=${this.detail.id}`
+				})
+			},
+			// 清除聊天记录
+			clearhistory() {
+				uni.showModal({
+					title: '提示',
+					content: '是否清空聊天记录',
+					success: (res) => {
+						if (res.cancel) return;
+						this.chat.clearchat(this.detail.id, this.detail.chat_type).then(res => {
+							let timer = setTimeout(() => {
+								uni.showToast({
+									title: '清除成功',
+									icon: 'none'
+								})
+								clearTimeout(timer)
+							}, 300)
+						})
+					}
+				});
+			},
+			updatestatus(event, value) {
+				this.detail[event] = value;
+				console.log(123);
+				this.chat.updateChatItem({
+					id: this.detail.id,
+					chat_type: this.detail.chat_type
+				}, {
+					key: event,
+					value
+				});
+			},
+			getdetail(chat_type, id) {
+				console.log(this.detail.id)
+				$H.get(`/group/groupdetail/${this.detail.id}`).then(res => {
+					this.list = res.group_users.map(v => {
+						return {
+							id: v.user_id,
+							nickname: v.nickname,
+							avatar: v.group_user.avatar || '/static/images/demo/demo5.jpg'
+						}
+					})
+					this.detail.id = res.id
+					this.detail.remark = res.remark;
+					this.detail.invite_confirm = res.invite_confirm
+					this.name = res.name
+					this.detail.user_id = res.user_id
+				}).catch(err => {
+					console.log(err)
+				})
+			},
+			rename() {
+				if (this.user.id == this.detail.user_id) {
+					this.renamevalue = this.name
+					this.$refs.confirm.open((close) => {
+						if (this.renamevalue.length > 0) {
+							this.updatename().then(res => {
+								let timer = setTimeout(() => {
+									this.name = this.renamevalue
+									this.chat.TO.username = this.renamevalue
+									close()
+									uni.showToast({
+										title: '修改成功',
+										icon: 'none'
+									})
+									clearTimeout(timer)
+								}, 300)
+
+							})
+						}
+					})
+				}
+			},
+			updatenickname() {
+				this.newnickname = this.mynickname
+				this.$refs.mynickname.open((close) => {
+					if (this.newnickname.length > 0) {
+						$H.post('/group/updatenickname', {
+							id: this.detail.id, //群组id
+							nickname: this.newnickname,
+							oldnickname: this.mynickname
+						}).then(res => {
+							this.list = this.list.map(v => {
+								if (v.id == this.user.id) {
+									v.nickname = this.newnickname
+								}
+								return v
+							})
+							this.newnickname = ''
+							let timer = setTimeout(() => {
+								uni.showToast({
+									title: '修改成功',
+									icon: 'none'
+								})
+								clearTimeout(timer)
+							}, 300)
+							close()
+						}).catch(err => {
+							close()
+						})
+					}
+				})
+			},
+			async updatename() {
+				$H.post('/group/updategroupname', {
+					id: this.detail.id,
+					name: this.renamevalue
+				}).catch(err => {
+					console.log(err);
+				})
+			},
+			toremark() {
+				uni.navigateTo({
+					url: "../group/group_remark?params=" + encodeURIComponent(JSON.stringify({
+						id: this.detail.id, //群主id
+						username: this.detail.nickname, //群名称
+						user_id: this.detail.user_id,
+						remark: this.detail.remark,
+					}))
+				})
+			},
+			// 群二维码
+			tocode() {
+				uni.navigateTo({
+					url: '../../my/user_code/user_code?params=' + encodeURIComponent(JSON.stringify({
+						id: this.detail.id, //好友id
+						avatar: this.detail.avatar,
+						name: this.name
+					})) + '&type=group'
+				})
+			},
+			quitgroup() {
+				uni.showModal({
+					title: '提示',
+					content: `退出/解散群聊}`,
+					confirmText: '确定',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.cancel) return;
+						$H.post('/group/quit', {
+							id: this.detail.id
+						}).then(res => {
+							uni.showToast({
+								title: `退出/解散群聊`,
+								icon: 'none'
+							})
+							uni.navigateBack({
+								delta: 1
+							})
+						})
+					}
+				})
+			}
+		},
+	}
+</script>
+
+<style>
+
+</style>

@@ -1,0 +1,116 @@
+<template>
+	<view class="flex  align-start p-3 border-bottom rounded">
+		<free-avatar  rounded="rounded-circle" :size="100"  :src="item.avatar || '/static/images/userpic.png'" >
+		</free-avatar>
+		<view class="flex flex-column pl-2 flex-1">
+			<text class="text-primary font mb-1">{{item.user_name}}</text>
+			<text class="font mb-2">{{item.content}}</text>
+			<!-- 图片 -->
+			<view v-if="item.image.length>0" class="flex flex-wrap py-2">
+			<block v-for="(iimage,iindex) in item.image" :key="iindex">
+					<image v-if="item.image.length===1" 
+					class="bg-secondary" :src="iimage.src" 
+					style="width: 380rpx;height: 380rpx;"
+					@click="tourls(iimage.src)"
+					 mode="aspectFill"></image>
+				<!-- 多图 -->
+					<image v-else-if="item.image.length>1"  
+					class="bg-secondary mr-1 mb-1" 
+					:src="iimage.src" 
+					@click="tourls(iimage.src)"
+					style="width: 180rpx;height: 180rpx;"
+					 mode="aspectFill"></image>
+			</block>
+			</view>
+			<view class="py-2" v-if="item.video">
+				<video :src="item.video.url" style="width: 380rpx;height: 380rpx;" :poster="item.video.poster" controls></video>
+			</view>
+			<!-- 底部栏选项栏 -->
+			<view class="flex justify-between my-1 mr-1">
+				<text class="text-light-muted font-sm">{{item.created_at|filtertime}}</text>
+				<text class="text-light-muted font-sm iconfont" @click="$emit('doaction',{item,index})">&#xe65d;</text>
+			</view>
+			<!-- 点赞栏 -->
+			<view class="flex align-start bg-light  p-2 border-bottom" 
+				  v-if="item.likes.length>0">
+				<text class="iconfont flex-shrink text-primary mx-1 font-md">&#xe7ae;</text>
+				<view class="flex-1 flex flex-wrap align-center">
+					<text v-for="(sitem,sindex) in item.likes"
+						  :key="sindex" 
+						  class="text-primary font-sm mr-1 pb-1">{{sitem.name}}</text>
+				</view>
+			</view>
+			<!-- 评论栏 -->
+			<view class=" bg-light   p-2 border-bottom" 
+				  v-for="(citem,cindex) in item.comments"
+				  
+				  :key="cindex"
+				  v-if="item.comments.length>0">
+				<template v-if="!citem.reply">
+					<view class="flex align-start">
+						<text class="text-primary font-sm">{{citem.user.name}}：</text>
+						<text class="text-dark font-sm flex-1" @longpress="reply(citem)" hover-class="bg-hover-light">{{citem.content}}</text>
+					</view>
+				</template>
+				<template v-else>
+					<view class="flex flex-wrap align-center">
+						<text class="text-primary p-1 font-sm">{{citem.user.name}} 回复 {{citem.reply.name}} : </text>
+						<text class="text-dark font-sm p-1 flex-1" @longpress="reply(citem)" hover-class="bg-hover-light">{{citem.content}}</text>
+					</view>
+				</template>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import freeAvatar from '@/components/free-ui/free-avatar.vue'
+	import $T from '@/common/free-lib/time.js'
+	export default {
+		props: {
+			item: {
+				type: Object,
+				default: () => ({})
+			},
+			index:{
+				type:Number,
+				default:0
+			}
+		},
+		components:{
+			freeAvatar
+		},
+		filters:{
+			filtertime(t)
+			{
+				return $T.gettime(t)
+			}
+		},
+		computed:{
+			urls()
+			{
+				return this.item.image.map(v=>v.src)
+			}
+		},
+		methods:{
+			tourls(src)
+			{
+				console.log(src);
+				console.log(this.urls);
+				uni.previewImage({
+					current:src,
+					urls:this.urls
+				})
+			},
+			reply(item)
+			{
+				this.$emit("reply",{item,index:this.index})
+			}
+		}
+		
+	}
+</script>
+
+<style>
+
+</style>

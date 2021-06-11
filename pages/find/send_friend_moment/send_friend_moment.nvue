@@ -1,0 +1,206 @@
+<template>
+	<view>
+		<free-navbar isshowback :showsearch="false">
+			<view slot="options">
+				<free-button content="发表" @click="save" :disabled="false"></free-button>
+			</view>
+		</free-navbar>
+		<view class="p-5">
+			<textarea  v-model="content" placeholder="这一刻的想法..." />
+			<!-- 图文 -->
+			<free-upload-image @choosevideo="choosevideo" :video="video" :type="type" v-if="type=='image' || type=='video'" @longpress="longpress" :imageList="imageList" @chooseimage="chooseimage"></free-upload-image>
+			<view class="">
+				<free-list-item @click="selectelocation" icon="false" text="所在位置" showarray>
+					<text slot="icon" class="iconfont  font-lg">&#xe681;</text>
+				</free-list-item>
+				<free-list-item @click="selectremind" text="提醒谁看" showarray>
+					<text slot="icon" class="iconfont font-md">&#xe620;</text>
+				</free-list-item>
+				<free-list-item @click="selectsee" text="谁可以看" showarray>
+					<text slot="rightcontent" class="font mr-3 text-light-muted">{{seevalue}}</text>
+					<text slot="icon" class="iconfont text-light-muted font-lg">&#xe600;</text>
+				</free-list-item>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	import freeUploadImage from '@/components/free-ui/free—upload-image.vue'
+	import freeListItem from '@/components/free-ui/free-list-item.vue'
+	import freeButton from '@/components/free-ui/free-button.vue'
+	import $H from '@/common/free-lib/request.js'
+	import freeNavbar from '@/components/free-ui/free-navbar.vue'
+	export default {
+		components: {
+			freeNavbar,
+			freeButton,
+			freeListItem,
+			freeUploadImage
+		},
+		data()
+		{
+			return {
+				imageList:[],
+				type:'',
+				content:'',
+				video:false,
+				see:'all',
+				selecteList:[],
+			}
+		},
+		computed: {
+			seevalue() {
+				let data = ''
+				switch (this.see){
+					case 'all':
+					data = '公开'
+						break;
+					case'none':
+					data = '仅自己可见'
+						break;
+					default:
+					console.log(this.see == 'only');
+					data = `${this.selecteList.map(v=>v.name).join('、')}${this.see == 'only'?'可见':'不可见'}`
+				}
+				return data
+			},
+			seedata()
+			{
+				let data = ''
+				switch (this.see){
+					case 'only':
+					data = `${this.see}:${this.selecteList.map(v=>v.user_id).join(',')}`
+						break;
+					case'except':
+					data = `${this.see}:${this.selecteList.map(v=>v.user_id).join(',')}`
+						break;
+					default:
+					data = this.see
+				}
+				return data
+			}
+		},
+		onLoad(e)
+		{
+			this.type = e.type
+			uni.$on('handleResult',this.handleResult)
+		},
+		destroyed() {
+			uni.$off('handleResult',this.handleResult)
+		},
+		methods: {
+			// 选择位置
+			selectelocation()
+			{
+				uni.navigateTo({
+					url:'../moment_location/moment_location'
+				})
+			},
+			handleResult(data)
+			{
+				this.see = data.key,
+				this.selecteList = data.data
+			},
+			// 提醒睡看
+			selectremind()
+			{
+				uni.navigateTo({
+					url: '../../mail/mail/mail_connector?type=remind'
+				})	
+			},
+			// 谁可以看
+			selectsee()
+			{
+				uni.navigateTo({
+					url: `../moment_see/moment_see?params=${JSON.stringify({
+						key:this.see,
+						selectedList:this.selecteList
+					})}`
+				})	
+			},
+			longpress(e) {
+				console.log(e);
+				let {i} = e
+				uni.showModal({
+					title:'提示',
+					content:'是否删除该图片',
+					success:(res)=>{
+						if(res.confirm)
+						{
+							this.imageList.splice(i,1)
+						}
+					}
+				})
+			},
+			chooseimage()
+			{
+				uni.chooseImage({
+					sizeType:['compressed'],
+					count:9-this.imageList.length,
+					success:(res)=>{
+						res.tempFilePaths.forEach(path=>{
+							$H.uploadfiles(path,(onProgress)=>{
+								console.log(onProgress);
+							}).then(url=>{
+								console.log(url); 
+								let dataurl = JSON.parse(url.data)
+								this.imageList.push(dataurl.data);
+							}).catch(err=>{
+								console.log(err);
+							})
+						})
+					}
+				})
+			},
+			choosevideo()
+			{
+				uni.chooseVideo({
+					maxDuration: 10,
+					count: 1, 
+					success: (res) => { 
+						let url = res.tempFilePath;
+						$H.uploadfiles(url,(progress)=>{
+							console.log(progress);
+						}).then(res=>{
+							let dataurl = JSON.parse(res.data);
+							this.video={
+								url:dataurl.data,
+								poster:`${dataurl.data}?x-oss-process=video/snapshot,t_10,m_fast,w_300,f_png`
+							}
+						})
+						// 渲染页面
+						// 发送到服务端
+						// 修改发送状态
+				
+					}
+				})
+			},
+			save(){
+				console.log(this.seedata);
+				$H.post('/moment/new',{
+					type:this.type, 
+					content:this.content,
+					image:this.type=='image'?this.imageList.join(','):'',
+					video:this.type=='video'&&this.video?this.video:"",
+					location:"",
+					remind:"",
+					see:this.seedata,
+				}).then(res=>{
+					uni.showToast({
+						title:'发布瞬间成功',
+						icon:'none'
+					})
+					uni.navigateBack({
+						delta:1
+					})
+				})
+			}
+		},
+		
+	}
+</script>
+
+<style>
+
+</style>
